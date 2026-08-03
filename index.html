@@ -1431,6 +1431,22 @@ function toast(msg){
     document.querySelector('nav button[data-view="set"]').click();
   }
 })();
+
+/* offline support: cache the app shell so the gym has no say in whether this opens */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        // no existing controller = first install, nothing worth announcing
+        if(!sw || !navigator.serviceWorker.controller) return;
+        sw.addEventListener('statechange', () => {
+          if(sw.state === 'activated') toast('Update ready — reload to apply');
+        });
+      });
+    }).catch(()=>{});  // unsupported or offline on first load: app still runs, just uncached
+  });
+}
 </script>
 </body>
 </html>
