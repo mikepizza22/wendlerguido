@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="5/3/1" />
+<meta name="theme-color" content="#12151b" />
+<title>5/3/1 Tracker</title>
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+<style>
+  :root{
+    --bg:#12151b; --panel:#1b1f27; --panel2:#232833; --line:#2e3441;
+    --ink:#e8ecf3; --dim:#98a2b3; --accent:#ff8a3d; --accent2:#4aa3ff;
+    --good:#3ddc97; --warn:#ffcc4d;
+
+    /* ---- data-viz roles (dark mode only; validated against surface #1b1f27) ---- */
+    --viz-surface:#1b1f27;   /* chart surface = panel */
+    --viz-grid:#2e3441;      /* hairline gridline, one step off surface */
+    --viz-axis:#39404f;      /* baseline / axis rule */
+    --viz-ink:#e8ecf3;       /* primary ink */
+    --viz-muted:#98a2b3;     /* axis + label ink */
+    --viz-deemph:#4b5364;    /* sparkline de-emphasis */
+    --viz-up:#0ca30c;        /* delta up = good  (4.92:1) */
+    --viz-down:#e66767;      /* delta down       (5.11:1) */
+    --s1:#3987e5;            /* categorical slot 1 — Press    */
+    --s2:#d95926;            /* categorical slot 2 — Deadlift */
+    --s3:#199e70;            /* categorical slot 3 — Bench    */
+    --s4:#c98500;            /* categorical slot 4 — Squat    */
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    /* installed as a home-screen app the status bar is translucent, so keep
+       content clear of the notch; in-browser these insets resolve to 0 */
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .app{max-width:540px;margin:0 auto;padding:0 14px 96px;}
+
+  header{padding:18px 0 10px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+  header h1{margin:0;font-size:20px;letter-spacing:-.3px;}
+  header .meta{font-size:12px;color:var(--dim);text-align:right;line-height:1.3;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;}
+  .panel h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);font-weight:600;}
+
+  .row{display:flex;gap:8px;align-items:center;}
+  .row.wrap{flex-wrap:wrap;}
+  .spacer{flex:1;}
+
+  button{
+    font:inherit;font-weight:600;color:var(--ink);background:var(--panel2);
+    border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;
+  }
+  button:active{transform:translateY(1px);}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#1a1005;}
+  button.ghost{background:transparent;}
+  button.sm{padding:6px 10px;font-size:13px;border-radius:8px;}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+
+  input,select{
+    font:inherit;color:var(--ink);background:var(--panel2);
+    border:1px solid var(--line);border-radius:10px;padding:9px 10px;width:100%;
+    -webkit-appearance:none;appearance:none;
+  }
+  input:focus,select:focus{outline:none;border-color:var(--accent2);}
+  label.fld{display:block;margin-bottom:10px;}
+  label.fld span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);margin-bottom:4px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  /* lift chips */
+  .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .chip{
+    background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:9px 4px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;
+    position:relative;overflow:hidden;
+  }
+  .chip.active{border-color:var(--accent);background:rgba(255,138,61,.14);color:var(--accent);}
+  .chip .tick{position:absolute;top:2px;right:4px;font-size:10px;color:var(--good);}
+  .chip .dt{display:block;font-size:9px;font-weight:500;color:var(--dim);margin-top:3px;white-space:nowrap;}
+  .chip.today{border-color:var(--accent2);}
+  .chip.today .dt{color:var(--accent2);font-weight:700;}
+  .chip .dt.late{color:var(--warn);}
+
+  .days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+  .days button{padding:9px 0;font-size:12px;border-radius:8px;}
+  .days button.on{background:var(--accent);border-color:var(--accent);color:#1a1005;}
+
+  /* sets */
+  .set{
+    display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:11px;
+    background:var(--panel2);border:1px solid var(--line);margin-bottom:7px;
+  }
+  .set.warm{background:transparent;border-style:dashed;opacity:.8;}
+  .set.amrap{border-color:var(--accent);}
+  .set .w{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;min-width:78px;}
+  .set .w small{font-size:11px;font-weight:500;color:var(--dim);margin-left:2px;}
+  .set .r{font-size:13px;color:var(--dim);}
+  .set .r b{color:var(--ink);font-weight:600;}
+  .set .pl{font-size:11px;color:var(--dim);margin-top:2px;}
+  .set .amrapin{width:74px;flex:0 0 auto;text-align:center;font-weight:700;}
+  .tag{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;}
+
+  /* Boring But Big */
+  .bbbhead{display:flex;align-items:baseline;gap:8px;margin:18px 0 8px;flex-wrap:wrap;}
+  .bbbhead b{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--accent2);}
+  .bbbhead span{font-size:11px;color:var(--dim);}
+  .set.bbb{padding:9px 12px;cursor:pointer;user-select:none;}
+  .set.bbb .w{font-size:17px;min-width:70px;}
+  .set.bbb .chk{
+    width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--good);
+  }
+  .set.bbb.done{border-color:rgba(61,220,151,.55);background:rgba(61,220,151,.07);}
+  .set.bbb.done .chk{border-color:var(--good);background:rgba(61,220,151,.16);}
+  .set.bbb.done .w{color:var(--good);}
+
+  .note{font-size:12px;color:var(--dim);margin:8px 0 0;}
+  .big{font-size:26px;font-weight:800;letter-spacing:-.5px;}
+  .kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .kv:last-child{border-bottom:none;}
+  .kv .v{font-variant-numeric:tabular-nums;font-weight:600;}
+  .muted{color:var(--dim);}
+  .up{color:var(--good);} .down{color:#ff6b6b;}
+
+  /* week strip */
+  .weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;}
+  .wk{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center;cursor:pointer;}
+  .wk b{display:block;font-size:13px;}
+  .wk small{font-size:10px;color:var(--dim);}
+  .wk.active{border-color:var(--accent2);background:rgba(74,163,255,.12);}
+  .wk .dots{margin-top:4px;font-size:9px;letter-spacing:2px;color:var(--good);}
+
+  nav{
+    position:fixed;left:0;right:0;bottom:0;background:rgba(18,21,27,.94);
+    backdrop-filter:blur(10px);border-top:1px solid var(--line);
+    display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20;
+  }
+  nav button{
+    flex:1;background:none;border:none;border-radius:0;padding:12px 4px 14px;
+    color:var(--dim);font-size:11px;font-weight:600;letter-spacing:.3px;
+  }
+  nav button.active{color:var(--accent);}
+  nav button .ic{display:block;font-size:17px;margin-bottom:2px;}
+
+  .view{display:none;} .view.active{display:block;}
+
+  /* ---------- dashboard ---------- */
+  .filters{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:2px 0 12px;}
+  .filters .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--dim);margin-right:2px;}
+  .filters button{padding:6px 11px;font-size:12px;border-radius:8px;}
+  .filters button.on{border-color:var(--s1);color:var(--s1);background:rgba(57,135,229,.12);}
+
+  .hero .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--dim);}
+  .hero .val{font-size:clamp(46px,13vw,58px);font-weight:700;letter-spacing:-1.8px;line-height:1.02;margin:4px 0 5px;}
+  .hero .val small{font-size:17px;font-weight:600;color:var(--dim);letter-spacing:0;margin-left:5px;}
+  .hero .dl{font-size:13px;}
+
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .tile{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 11px 8px;}
+  .tile .lbl{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;}
+  .tile .key{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .tile .val{font-size:23px;font-weight:700;letter-spacing:-.6px;margin:3px 0 1px;}
+  .tile .val small{font-size:11px;color:var(--dim);font-weight:600;margin-left:2px;letter-spacing:0;}
+  .tile .dl{font-size:11px;}
+  .tile svg{display:block;margin-top:7px;}
+  .dl.up{color:var(--viz-up);} .dl.down{color:var(--viz-down);} .dl.flat{color:var(--dim);}
+
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 10px;}
+  .legend button{background:none;border:none;padding:2px 0;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink);}
+  .legend .k{width:15px;height:2px;border-radius:1px;flex:0 0 auto;}
+  .legend button.off{opacity:.35;}
+  .legend button.off .k{background:var(--dim)!important;}
+
+  .chartwrap{position:relative;}
+  .chartwrap svg{display:block;width:100%;touch-action:pan-y;outline:none;}
+  .chartwrap svg:focus-visible{outline:2px solid var(--s1);outline-offset:2px;border-radius:6px;}
+  .tip{
+    position:absolute;pointer-events:none;z-index:5;opacity:0;transition:opacity .1s;
+    background:#0f1218;border:1px solid var(--line);border-radius:9px;padding:7px 9px;
+    font-size:12px;box-shadow:0 6px 18px rgba(0,0,0,.55);white-space:nowrap;
+  }
+  .tip.show{opacity:1;}
+  .tip .th{font-size:10px;color:var(--dim);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
+  .tip .tr{display:flex;align-items:center;gap:7px;line-height:1.55;}
+  .tip .tr .k{width:13px;height:2px;border-radius:1px;flex:0 0 auto;}
+  .tip .tr .nm{color:var(--dim);font-size:11px;flex:1;text-align:left;}
+  .tip .tr .v{font-weight:700;font-variant-numeric:tabular-nums;}
+  .tip .tr.stale .v{font-weight:500;color:var(--dim);}
+
+  table.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+  table.tbl th{text-align:right;font-weight:600;color:var(--dim);font-size:9px;text-transform:uppercase;
+    letter-spacing:.5px;padding:5px 3px;border-bottom:1px solid var(--line);}
+  table.tbl th:first-child,table.tbl td:first-child{text-align:left;}
+  table.tbl td{text-align:right;padding:7px 3px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;}
+  table.tbl tr:last-child td{border-bottom:none;}
+  table.tbl .del{color:var(--dim);cursor:pointer;padding:0 2px;}
+
+  .toast{
+    position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(10px);
+    background:var(--good);color:#062;padding:10px 18px;border-radius:999px;font-weight:700;
+    font-size:14px;opacity:0;pointer-events:none;transition:.22s;z-index:30;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>5/3/1</h1>
+    <div class="meta" id="hdrMeta"></div>
+  </header>
+
+  <!-- ============ TRAIN ============ -->
+  <section class="view active" id="v-train">
+    <div class="weeks" id="weekStrip"></div>
+    <div class="chips" id="liftChips" style="margin-bottom:12px;"></div>
+
+    <div class="panel">
+      <h2 id="workoutTitle">Workout</h2>
+      <div class="note" id="workoutDate" style="margin:-4px 0 12px;"></div>
+      <div id="warmups"></div>
+      <div id="mainsets"></div>
+      <div id="bbbsets"></div>
+      <div class="row" style="margin-top:12px;">
+        <button class="primary" id="saveBtn" style="flex:1;">Log workout</button>
+        <button class="ghost sm" id="clearBtn">Undo</button>
+      </div>
+      <p class="note" id="e1rmNote"></p>
+    </div>
+
+    <div class="panel" id="cycleDonePanel" style="display:none;">
+      <h2>Cycle complete</h2>
+      <div id="bumpPreview"></div>
+      <button class="primary" id="nextCycleBtn" style="width:100%;margin-top:10px;">Start cycle <span id="nextCycleNum"></span> (bump TMs)</button>
+    </div>
+  </section>
+
+  <!-- ============ PLAN ============ -->
+  <section class="view" id="v-plan">
+    <div class="panel">
+      <h2>Cycle <span id="planCycle"></span> — all sets</h2>
+      <div id="planBody"></div>
+    </div>
+  </section>
+
+  <!-- ============ PROGRESS DASHBOARD ============ -->
+  <section class="view" id="v-hist">
+    <!-- one filter row, above everything it scopes -->
+    <div class="filters" id="dashFilters"><span class="lbl">Range</span></div>
+
+    <div class="panel"><div class="hero" id="hero"></div></div>
+
+    <div class="panel">
+      <h2>By lift</h2>
+      <div class="tiles" id="tiles"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Estimated 1RM over time</h2>
+      <div class="legend" id="legend"></div>
+      <div class="chartwrap" id="e1rmChart"></div>
+      <p class="note">From each week's AMRAP set (Epley). Tap a lift in the legend to show or hide it.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Training tonnage by cycle</h2>
+      <div class="chartwrap" id="volChart"></div>
+      <p class="note">Weight × reps across the three main sets plus any BBB sets you checked off. Warm-ups aren't counted.</p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:8px;">
+        <h2 style="margin:0;">Sessions</h2><div class="spacer"></div>
+        <button class="sm ghost" id="tblToggle">Show table</button>
+      </div>
+      <div id="tableWrap"></div>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="view" id="v-set">
+    <div class="panel">
+      <h2>Training maxes</h2>
+      <p class="note" style="margin:0 0 10px;">Enter your true 1RM (or a recent best) and the TM is set to <b id="tmPctLabel">90</b>% of it. Or type the TM directly.</p>
+      <div id="tmFields"></div>
+    </div>
+    <div class="panel">
+      <h2>Preferences</h2>
+      <div class="grid2">
+        <label class="fld"><span>Units</span>
+          <select id="setUnits"><option value="lb">lb</option><option value="kg">kg</option></select></label>
+        <label class="fld"><span>TM = % of 1RM</span>
+          <select id="setTmPct"><option value="90">90%</option><option value="85">85%</option></select></label>
+        <label class="fld"><span>Round to</span>
+          <select id="setRound"></select></label>
+        <label class="fld"><span>Bar weight</span>
+          <input id="setBar" type="number" inputmode="decimal" step="0.5" /></label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Boring But Big</h2>
+      <label class="fld"><span>Assistance</span>
+        <select id="setBBB">
+          <option value="off">None</option>
+          <option value="on">Boring But Big — 5×10 after the main work</option>
+        </select></label>
+      <div id="bbbOpts">
+        <div class="grid2">
+          <label class="fld"><span>Which lift</span>
+            <select id="setBBBLift">
+              <option value="same">Same lift</option>
+              <option value="opposite">Opposite lift</option>
+            </select></label>
+          <label class="fld"><span>Intensity</span>
+            <select id="setBBBPct">
+              <option value="30">30% TM</option><option value="40">40% TM</option>
+              <option value="50">50% TM</option><option value="60">60% TM</option>
+              <option value="70">70% TM</option>
+              <option value="wave">Wave 50→60→70 by cycle</option>
+            </select></label>
+        </div>
+        <label class="fld"><span>Deload week</span>
+          <select id="setBBBDeload">
+            <option value="no">Skip BBB on week 4</option>
+            <option value="yes">Do BBB on week 4 too</option>
+          </select></label>
+        <p class="note" id="bbbNote"></p>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Schedule</h2>
+      <label class="fld"><span>Cycle <span id="schedCycleNum"></span> starts</span>
+        <input id="setStart" type="date" /></label>
+      <label class="fld"><span>Training days</span>
+        <div class="days" id="dayToggles"></div></label>
+      <p class="note" id="schedPreview"></p>
+      <button class="sm ghost" id="startTodayBtn" style="margin-top:8px;">Start this cycle today</button>
+    </div>
+
+    <div class="panel">
+      <h2>Cycle position</h2>
+      <div class="grid2">
+        <label class="fld"><span>Cycle</span><input id="setCycle" type="number" min="1" step="1" /></label>
+        <label class="fld"><span>Week</span>
+          <select id="setWeek"><option value="1">1 — 5s</option><option value="2">2 — 3s</option><option value="3">3 — 5/3/1</option><option value="4">4 — Deload</option></select></label>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Data</h2>
+      <div class="row wrap">
+        <button class="sm" id="exportBtn">Export JSON</button>
+        <button class="sm" id="importBtn">Import JSON</button>
+        <button class="sm" id="resetBtn" style="color:#ff8080;">Reset all</button>
+      </div>
+      <input type="file" id="fileIn" accept="application/json" style="display:none;" />
+    </div>
+  </section>
+</div>
+
+<nav>
+  <button class="active" data-view="train"><span class="ic">🏋️</span>Train</button>
+  <button data-view="plan"><span class="ic">📋</span>Plan</button>
+  <button data-view="hist"><span class="ic">📈</span>Progress</button>
+  <button data-view="set"><span class="ic">⚙️</span>Settings</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= Wendler 5/3/1 constants ================= */
+const LIFTS = [
+  { id:'press',    name:'Press',    short:'OHP',  upper:true  },
+  { id:'deadlift', name:'Deadlift', short:'DL',   upper:false },
+  { id:'bench',    name:'Bench',    short:'Bench',upper:true  },
+  { id:'squat',    name:'Squat',    short:'Squat',upper:false },
+];
+
+const WEEKS = [
+  { n:1, label:'5s',    sets:[{pct:65,reps:5},{pct:75,reps:5},{pct:85,reps:5,amrap:true}] },
+  { n:2, label:'3s',    sets:[{pct:70,reps:3},{pct:80,reps:3},{pct:90,reps:3,amrap:true}] },
+  { n:3, label:'5/3/1', sets:[{pct:75,reps:5},{pct:85,reps:3},{pct:95,reps:1,amrap:true}] },
+  { n:4, label:'Deload',sets:[{pct:40,reps:5},{pct:50,reps:5},{pct:60,reps:5}], deload:true },
+];
+
+const WARMUPS = [{pct:40,reps:5},{pct:50,reps:5},{pct:60,reps:3}];
+
+/* Boring But Big: 5×10 after the main work. "Opposite" is Wendler's pairing —
+   press day gets bench, squat day gets deadlift, and vice versa. */
+const BBB_SETS = 5, BBB_REPS = 10;
+const BBB_PAIR = { press:'bench', bench:'press', squat:'deadlift', deadlift:'squat' };
+const BBB_WAVE = [50, 60, 70];   // steps once per cycle when pct = 'wave'
+const SESSIONS_PER_CYCLE = WEEKS.length * LIFTS.length;   // 16
+
+const DAY_NAMES = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+const DAY_MS = 86400000;
+
+function toISODate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const today = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
+
+const DEFAULTS = {
+  version: 1,
+  settings: { units:'lb', tmPct:90, roundTo:5, bar:45,
+              bbb:'off', bbbLift:'same', bbbPct:'50', bbbDeload:false,
+              startDate: toISODate(today()), trainDays:[1,2,4,5] },
+  tms:    { press:0, deadlift:0, bench:0, squat:0 },
+  oneRMs: { press:0, deadlift:0, bench:0, squat:0 },
+  cycle: 1,
+  week: 1,
+  done: {},      // "cycle-week-liftId" -> { date, amrapReps, e1rm, tm }
+  history: [],   // newest last
+};
+
+/* ================= State ================= */
+const KEY = 'wendler531.v1';
+let S = load();
+let selLift = LIFTS[0].id;
+let viewWeek = S.week;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return structuredClone(DEFAULTS);
+    const parsed = JSON.parse(raw);
+    // migrate the old single-value BBB setting ('off' | '50' | '60')
+    if(parsed.settings && /^\d+$/.test(String(parsed.settings.bbb))){
+      parsed.settings.bbbPct = String(parsed.settings.bbb);
+      parsed.settings.bbb = 'on';
+    }
+    return Object.assign(structuredClone(DEFAULTS), parsed, {
+      settings: Object.assign({}, DEFAULTS.settings, parsed.settings||{}),
+      tms:      Object.assign({}, DEFAULTS.tms,      parsed.tms||{}),
+      oneRMs:   Object.assign({}, DEFAULTS.oneRMs,   parsed.oneRMs||{}),
+    });
+  }catch(e){ return structuredClone(DEFAULTS); }
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+
+/* ================= Formatting & lookups ================= */
+const roundTo = (v, inc) => Math.round(v/inc)*inc;
+const fmt     = n => (Math.round(n*100)/100).toString();   // weights: 92.5, 135
+const nf      = n => Math.round(n).toLocaleString();       // counts:  1,176
+const compact = n => n >= 1000 ? (Math.round(n/100)/10) + 'k' : nf(n);
+const U = () => S.settings.units;
+const liftById = id => LIFTS.find(l => l.id === id);
+const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const plural = (n, w) => `${n} ${w}${n===1?'':'s'}`;
+
+function setWeight(tm, pct){
+  const inc = S.settings.roundTo || (U()==='lb' ? 5 : 2.5);
+  return roundTo(tm * pct/100, inc);
+}
+// Epley
+function e1rm(weight, reps){
+  if(!weight || !reps) return 0;
+  if(reps === 1) return weight;
+  return Math.round(weight * reps * 0.0333 + weight);
+}
+function tmBump(lift){
+  const up = liftById(lift).upper;
+  return U()==='lb' ? (up?5:10) : (up?2.5:5);
+}
+function plates(total){
+  const bar = S.settings.bar;
+  let per = (total - bar)/2;
+  if(per < 0) return 'under bar';
+  if(per === 0) return 'bar only';
+  const sizes = U()==='lb' ? [45,35,25,10,5,2.5] : [25,20,15,10,5,2.5,1.25];
+  const out = [];
+  for(const s of sizes){
+    let c = 0;
+    while(per >= s - 1e-9){ per = +(per - s).toFixed(4); c++; }
+    if(c) out.push(c>1 ? `${c}×${s}` : `${s}`);
+  }
+  if(per > 1e-9) out.push(`+${fmt(per)}?`);
+  return out.join(' · ') + ' / side';
+}
+const doneKey = (c,w,l) => `${c}-${w}-${l}`;
+
+/* The BBB block attached to a given main lift + week, or null if it doesn't apply. */
+function bbbFor(mainLiftId, week){
+  const st = S.settings;
+  if(st.bbb !== 'on') return null;
+  if(week === 4 && !st.bbbDeload) return null;          // deload stays a deload
+  const id = st.bbbLift === 'opposite' ? BBB_PAIR[mainLiftId] : mainLiftId;
+  const tm = S.tms[id];
+  if(!tm) return null;
+  const pct = st.bbbPct === 'wave' ? BBB_WAVE[(S.cycle-1) % BBB_WAVE.length] : +st.bbbPct;
+  return { liftId:id, name:liftById(id).name, pct, weight:setWeight(tm, pct),
+           sets:BBB_SETS, reps:BBB_REPS };
+}
+
+/* ================= Schedule ================= */
+function parseLocalDate(s){
+  if(!s) return null;
+  const [y,m,d] = String(s).split('-').map(Number);
+  return (y && m && d) ? new Date(y, m-1, d) : null;
+}
+function trainDays(){
+  return [...new Set(S.settings.trainDays || [])].sort((a,b)=>a-b);
+}
+/* first training day on or after `from` */
+function nextTrainDay(from){
+  const days = trainDays();
+  if(!days.length) return null;
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  for(let i=0;i<7;i++){
+    if(days.includes(d.getDay())) return d;
+    d.setDate(d.getDate()+1);
+  }
+  return null;
+}
+/* the i-th session of the cycle (0..15) mapped onto the training-day pattern */
+function dateForWorkout(week, liftIdx){
+  const days = trainDays();
+  const start = parseLocalDate(S.settings.startDate);
+  if(!days.length || !start) return null;
+  const d0 = nextTrainDay(start);
+  if(!d0) return null;
+  const per = days.length;
+  const i = (week-1)*LIFTS.length + liftIdx;
+  const si = days.indexOf(d0.getDay());
+  const rot = days.slice(si).concat(days.slice(0,si)); // weekday order starting at d0
+  const offset = Math.floor(i/per)*7 + ((rot[i%per] - rot[0] + 7) % 7);
+  const out = new Date(d0);
+  out.setDate(out.getDate() + offset);
+  return out;
+}
+function cycleSchedule(){
+  const out = [];
+  WEEKS.forEach(w => LIFTS.forEach((l,li) => out.push({
+    week:w.n, liftId:l.id, lift:l, date:dateForWorkout(w.n, li),
+    done: !!S.done[doneKey(S.cycle, w.n, l.id)],
+  })));
+  return out;
+}
+const isToday = d => d && +d === +today();
+const isPast  = d => d && +d <  +today();
+const fmtLong  = d => d ? d.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'}) : '';
+const fmtMed   = d => d ? d.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'}) : '';
+const fmtShort = d => d ? `${d.toLocaleDateString(undefined,{weekday:'short'})} ${d.getMonth()+1}/${d.getDate()}` : '';
+
+/* ================= Rendering ================= */
+const $ = id => document.getElementById(id);
+
+function render(){
+  renderHeader(); renderWeekStrip(); renderChips(); renderWorkout();
+  renderCycleDone(); renderPlan(); renderDash(); renderSettings();
+}
+
+function renderHeader(){
+  const wk = WEEKS[S.week-1];
+  const sched = cycleSchedule();
+  const t = sched.find(s => isToday(s.date));
+  const overdue = sched.filter(s => !s.done && isPast(s.date)).length;
+  const next = sched.find(s => !s.done && s.date && !isPast(s.date));
+
+  let line2;
+  if(t && !t.done)      line2 = `<span style="color:var(--accent2)">Today · ${t.lift.name}</span>`;
+  else if(t && t.done)  line2 = `<span class="up">Today · ${t.lift.name} ✔</span>`;
+  else if(next)         line2 = `Next · ${fmtShort(next.date)} ${next.lift.short}`;
+  else                  line2 = `<span class="muted">${U()}</span>`;
+  if(overdue) line2 += ` <span style="color:var(--warn)">· ${overdue} missed</span>`;
+
+  $('hdrMeta').innerHTML = `Cycle ${S.cycle} · Week ${S.week} — ${wk.label}<br>${line2}`;
+}
+
+function renderWeekStrip(){
+  $('weekStrip').innerHTML = WEEKS.map(w=>{
+    const dots = LIFTS.map(l => S.done[doneKey(S.cycle,w.n,l.id)] ? '●' : '○').join('');
+    const a = dateForWorkout(w.n, 0), b = dateForWorkout(w.n, LIFTS.length-1);
+    const range = a ? `${a.getMonth()+1}/${a.getDate()}–${b.getMonth()+1}/${b.getDate()}` : '';
+    return `<div class="wk ${w.n===viewWeek?'active':''}" data-week="${w.n}">
+      <b>W${w.n}</b><small>${w.label}</small>
+      ${range?`<small style="opacity:.7">${range}</small>`:''}
+      <div class="dots">${dots}</div></div>`;
+  }).join('');
+  $('weekStrip').querySelectorAll('.wk').forEach(el=>{
+    el.onclick = ()=>{ viewWeek = +el.dataset.week; render(); };
+  });
+}
+
+function renderChips(){
+  $('liftChips').innerHTML = LIFTS.map((l,li)=>{
+    const done = S.done[doneKey(S.cycle,viewWeek,l.id)];
+    const date = dateForWorkout(viewWeek, li);
+    const late = date && isPast(date) && !done;
+    return `<div class="chip ${l.id===selLift?'active':''} ${isToday(date)?'today':''}" data-lift="${l.id}">
+      ${done?'<span class="tick">✔</span>':''}${l.short}
+      ${date?`<span class="dt ${late?'late':''}">${fmtShort(date)}</span>`:''}</div>`;
+  }).join('');
+  $('liftChips').querySelectorAll('.chip').forEach(el=>{
+    el.onclick = ()=>{ selLift = el.dataset.lift; render(); };
+  });
+}
+
+/* "Today — Monday, August 3" / "Was … 2 days ago" / "✔ Logged … (+1d)" */
+function scheduleStatusHTML(date, rec){
+  if(!date)
+    return `<span class="muted">No schedule — set a start date and training days in Settings.</span>`;
+  if(rec){
+    const logged = new Date(rec.date);
+    const loggedDay = new Date(logged.getFullYear(), logged.getMonth(), logged.getDate());
+    const off = Math.round((loggedDay - date)/DAY_MS);
+    return `<span class="up">✔ Logged ${fmtMed(logged)}</span>` + (off
+      ? ` <span class="muted">(${off>0?'+':''}${off}d vs. scheduled ${fmtShort(date)})</span>`
+      : ` <span class="muted">— on schedule</span>`);
+  }
+  if(isToday(date)) return `<b style="color:var(--accent2)">Today — ${fmtLong(date)}</b>`;
+  if(isPast(date))
+    return `<span style="color:var(--warn)">Was ${fmtLong(date)} — ${plural(Math.round((today()-date)/DAY_MS),'day')} ago</span>`;
+  return `Scheduled ${fmtLong(date)} <span class="muted">· in ${plural(Math.round((date-today())/DAY_MS),'day')}</span>`;
+}
+
+function e1rmNoteHTML(tm, wk, rec){
+  if(rec && rec.e1rm)
+    return `Logged ${rec.amrapReps} reps → est. 1RM <b>${rec.e1rm} ${U()}</b> · ${new Date(rec.date).toLocaleDateString()}`;
+  const amrapSet = wk.sets.find(s=>s.amrap);
+  if(!amrapSet) return 'Deload week — leave the reps in the tank.';
+  const w = setWeight(tm, amrapSet.pct);
+  return `Last set is AMRAP — beat <b>${amrapSet.reps} reps</b> at ${w} ${U()}. Target for a PR: <b>${repsForPR(selLift, w)}</b>.`;
+}
+
+function renderWorkout(){
+  const lift = liftById(selLift);
+  const wk   = WEEKS[viewWeek-1];
+  const tm   = S.tms[selLift];
+  const rec  = S.done[doneKey(S.cycle, viewWeek, selLift)];
+
+  $('workoutTitle').textContent = `${lift.name} · Week ${viewWeek} — ${wk.label}`;
+  $('workoutDate').innerHTML = scheduleStatusHTML(dateForWorkout(viewWeek, LIFTS.indexOf(lift)), rec);
+
+  if(!tm){
+    $('warmups').innerHTML = `<p class="note">No training max set for ${lift.name}. Add one in Settings.</p>`;
+    $('mainsets').innerHTML = ''; $('bbbsets').innerHTML = '';
+    $('saveBtn').disabled = true; $('e1rmNote').textContent = '';
+    return;
+  }
+  $('saveBtn').disabled = false;
+
+  $('warmups').innerHTML =
+    WARMUPS.map(s => setRow(setWeight(tm,s.pct), s.reps, s.pct, {warm:true})).join('')
+    + `<div style="height:8px"></div>`;
+
+  $('mainsets').innerHTML =
+    wk.sets.map(s => setRow(setWeight(tm,s.pct), s.reps, s.pct, {amrap:s.amrap})).join('');
+
+  renderBBB(lift, rec);
+
+  $('e1rmNote').innerHTML = e1rmNoteHTML(tm, wk, rec);
+
+  const inp = document.querySelector('.amrapin');   // restore a previously logged AMRAP
+  if(inp && rec) inp.value = rec.amrapReps;
+}
+
+/* the weight + plate-breakdown cell shared by every set row */
+const weightCell = w => `<div>
+      <div class="w">${fmt(w)}<small>${U()}</small></div>
+      <div class="pl">${plates(w)}</div>
+    </div>`;
+
+function setRow(weight, reps, pct, o={}){
+  const cls = ['set', o.warm?'warm':'', o.amrap?'amrap':''].filter(Boolean).join(' ');
+  return `<div class="${cls}">
+    ${weightCell(weight)}
+    <div class="spacer"></div>
+    <div style="text-align:right;">
+      <div class="r"><b>${reps}${o.amrap?'+':''}</b> reps <span class="muted">· ${pct}%</span></div>
+      ${o.amrap?'<div class="tag">AMRAP</div>':''}
+    </div>
+    ${o.amrap ? `<input class="amrapin" type="number" inputmode="numeric" min="0" placeholder="${reps}" />` : ''}
+  </div>`;
+}
+
+/* --- Boring But Big block --- */
+let bbbDraft = { key:null, done:0 };   // sets checked off for the workout on screen
+
+function renderBBB(lift, rec){
+  const host = $('bbbsets');
+  const cfg = bbbFor(lift.id, viewWeek);
+  if(!cfg){
+    host.innerHTML = (S.settings.bbb === 'on' && viewWeek === 4)
+      ? `<p class="note" style="margin-top:12px;">BBB skipped on the deload — turn it on in Settings if you want it.</p>`
+      : '';
+    return;
+  }
+
+  const key = doneKey(S.cycle, viewWeek, lift.id);
+  if(bbbDraft.key !== key)                                  // reset the draft per workout
+    bbbDraft = { key, done: (rec && rec.bbb ? rec.bbb.done : 0) };
+
+  const swap = cfg.liftId !== lift.id;
+  const rows = Array.from({length: cfg.sets}, (_, i) => {
+    const on = i < bbbDraft.done;
+    return `<div class="set bbb ${on?'done':''}" data-bbb="${i}">
+      <div class="chk">${on?'✓':''}</div>
+      ${weightCell(cfg.weight)}
+      <div class="spacer"></div>
+      <div style="text-align:right;">
+        <div class="r"><b>${cfg.reps}</b> reps <span class="muted">· set ${i+1}/${cfg.sets}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  host.innerHTML = `
+    <div class="bbbhead">
+      <b>Boring But Big</b>
+      <span>${cfg.sets}×${cfg.reps} ${swap?`<b style="color:var(--ink)">${cfg.name}</b> · `:''}${cfg.pct}% TM
+        ${S.settings.bbbPct==='wave'?'<span class="tag" style="color:var(--accent2)">wave</span>':''}</span>
+      <div class="spacer"></div>
+      <span>${bbbDraft.done}/${cfg.sets}</span>
+    </div>
+    ${rows}
+    <p class="note">${nf(cfg.weight * cfg.reps * cfg.sets)} ${U()} of volume if you finish all ${cfg.sets} sets. Tap a set to check it off.</p>`;
+
+  host.querySelectorAll('[data-bbb]').forEach(el=>{
+    el.onclick = ()=>{
+      const i = +el.dataset.bbb;
+      bbbDraft.done = (bbbDraft.done === i+1) ? i : i+1;   // tap to fill up to that set
+      renderBBB(lift, rec);
+    };
+  });
+}
+
+// reps needed at this weight to beat current best e1RM
+function repsForPR(liftId, weight){
+  const best = bestE1RM(liftId);
+  if(!best || !weight) return '—';
+  if(weight >= best) return '1 rep';
+  const r = Math.ceil(((best/weight) - 1)/0.0333) + 1;
+  return `${r} reps`;
+}
+function bestE1RM(liftId){
+  return S.history.filter(h=>h.lift===liftId && h.e1rm).reduce((m,h)=>Math.max(m,h.e1rm),0);
+}
+
+function renderCycleDone(){
+  const all = LIFTS.every(l => S.done[doneKey(S.cycle,4,l.id)]);
+  $('cycleDonePanel').style.display = all ? 'block' : 'none';
+  if(!all) return;
+  $('nextCycleNum').textContent = S.cycle+1;
+  $('bumpPreview').innerHTML = LIFTS.map(l=>{
+    const b = tmBump(l.id);
+    return `<div class="kv"><span>${l.name}</span><span class="v">${fmt(S.tms[l.id])} → <span class="up">${fmt(S.tms[l.id]+b)}</span> ${U()}</span></div>`;
+  }).join('');
+}
+
+function renderPlan(){
+  $('planCycle').textContent = S.cycle;
+  $('planBody').innerHTML = WEEKS.map(w=>{
+    const rows = LIFTS.map((l,li)=>{
+      const tm = S.tms[l.id];
+      const date = dateForWorkout(w.n, li);
+      const done = S.done[doneKey(S.cycle,w.n,l.id)];
+      const tick = done ? ' <span class="up">✔</span>' : '';
+      const dt = date
+        ? `<div class="t" style="font-size:11px;color:${isToday(date)?'var(--accent2)':(isPast(date)&&!done?'var(--warn)':'var(--dim)')}">${fmtShort(date)}</div>`
+        : '';
+      if(!tm) return `<div class="kv"><span>${l.name}${dt}</span><span class="v muted">—</span></div>`;
+      const ws = w.sets.map(s=>{
+        const txt = `${fmt(setWeight(tm,s.pct))}×${s.reps}${s.amrap?'+':''}`;
+        return s.amrap ? `<b style="color:var(--accent)">${txt}</b>` : txt;
+      }).join('  /  ');
+      const b = bbbFor(l.id, w.n);
+      const bl = b
+        ? `<div style="font-size:11px;color:var(--dim);font-weight:500;margin-top:2px;">
+             + BBB ${b.sets}×${b.reps} ${b.liftId!==l.id?liftById(b.liftId).short+' ':''}@ ${fmt(b.weight)}</div>`
+        : '';
+      return `<div class="kv"><span>${l.name}${tick}${dt}</span><span class="v">${ws}${bl}</span></div>`;
+    }).join('');
+    return `<h2 style="margin-top:14px;">Week ${w.n} — ${w.label}</h2>${rows}`;
+  }).join('');
+}
+
+/* ================= Progress dashboard =================
+   Palette: categorical slots 1–4 (dark steps) validated with the skill's
+   validator against this app's surface #1b1f27 — lightness band, chroma floor,
+   CVD separation (worst adjacent ΔE 8.4 protan), normal-vision floor (19.8)
+   and 3:1 contrast all PASS. Colors follow the lift, never its rank. */
+const SVAR = { press:'--s1', deadlift:'--s2', bench:'--s3', squat:'--s4' };
+const cv = id => `var(${SVAR[id]})`;
+const RANGES = [['all','All'],['365','12 mo'],['90','90 d'],['30','30 d']];
+
+let dashRange = 'all';
+let hiddenSeries = new Set();
+let showTable = false;
+
+function rangeFrom(){
+  if(dashRange === 'all') return null;
+  const d = today(); d.setDate(d.getDate() - (+dashRange)); return d;
+}
+function dashRows(){
+  const from = rangeFrom();
+  return S.history
+    .filter(h => !from || new Date(h.date) >= from)
+    .slice().sort((a,b) => new Date(a.date) - new Date(b.date));
+}
+/* tonnage, recomputed from the stored TM / week / AMRAP reps, plus completed BBB sets */
+function mainTonnage(h){
+  const wk = WEEKS[h.week-1];
+  if(!wk || !h.tm) return 0;
+  return wk.sets.reduce((t,s)=>{
+    const reps = (s.amrap && h.amrapReps != null) ? h.amrapReps : s.reps;
+    return t + setWeight(h.tm, s.pct) * reps;
+  }, 0);
+}
+const bbbTonnage = h => h.bbb ? h.bbb.weight * h.bbb.reps * (h.bbb.done||0) : 0;
+const tonnage = h => mainTonnage(h) + bbbTonnage(h);
+function seriesOf(rows){
+  const m = {};
+  LIFTS.forEach(l => m[l.id] = rows
+    .filter(h => h.lift === l.id && h.e1rm > 0)
+    .map(h => ({ t:+new Date(h.date), v:h.e1rm })));
+  return m;
+}
+/* clean axis ticks: 1/2/5 × 10^k */
+function niceScale(min, max, count){
+  if(!isFinite(min) || !isFinite(max)) return {lo:0, hi:1, ticks:[0,1]};
+  if(min === max){ min -= 1; max += 1; }
+  const raw = (max-min)/count;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw/mag;
+  const step = (n<=1?1:n<=2?2:n<=5?5:10)*mag;
+  const lo = Math.floor(min/step)*step, hi = Math.ceil(max/step)*step;
+  const ticks = [];
+  for(let v=lo; v<=hi+step*1e-6; v+=step) ticks.push(+v.toFixed(6));
+  return {lo, hi, ticks};
+}
+/* charts render into hidden panels too, so measure the always-visible frame */
+/* Charts render into panels that may be on a hidden tab, so measure the
+   always-visible frame instead of the chart host. */
+const APP_PAD = 28, PANEL_PAD = 28, PANEL_BORDER = 2;
+function chartWidth(){
+  const app = document.querySelector('.app');
+  return Math.max(260, (app ? app.clientWidth : 360) - APP_PAD - PANEL_PAD - PANEL_BORDER);
+}
+
+/* --- small SVG builders (kept dumb: they take numbers, return strings) --- */
+const n1 = v => v.toFixed(1);
+const svgLine = (x1,y1,x2,y2,stroke,extra='') =>
+  `<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${stroke}" stroke-width="1" ${extra}/>`;
+const svgText = (x,y,txt,{anchor, size=10, fill='var(--viz-muted)', weight, style=''}={}) =>
+  `<text x="${n1(x)}" y="${n1(y)}" ${anchor?`text-anchor="${anchor}"`:''} font-size="${size}" fill="${fill}"
+     ${weight?`font-weight="${weight}"`:''} ${style?`style="${style}"`:''}>${txt}</text>`;
+const svgDot = (x,y,color,r=4) =>                       // 2px surface ring keeps dots legible on overlap
+  `<circle cx="${n1(x)}" cy="${n1(y)}" r="${r}" style="fill:${color}" stroke="var(--viz-surface)" stroke-width="2"/>`;
+const TABULAR = 'font-variant-numeric:tabular-nums';
+
+/* Horizontal gridlines + y-axis labels — identical chrome on both charts. */
+const yAxis = (sc, y, P, W, label) => sc.ticks.map(v =>
+  svgLine(P.l, y(v), W-P.r, y(v), 'var(--viz-grid)') +
+  svgText(P.l-8, y(v)+4, label(v), {anchor:'end', style:TABULAR})
+).join('');
+
+/* --- tooltips: one builder for both charts (textContent, never innerHTML) --- */
+function tipRow(color, name, value, stale){
+  const row = document.createElement('div');
+  row.className = 'tr' + (stale ? ' stale' : '');
+  const k = document.createElement('span'); k.className = 'k'; k.style.background = color;
+  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = name;
+  const v = document.createElement('span'); v.className = 'v'; v.textContent = value;
+  row.append(k, nm, v);
+  return row;
+}
+function showTip(tip, host, cx, header, rows){
+  tip.textContent = '';
+  const h = document.createElement('div'); h.className = 'th'; h.textContent = header;
+  tip.append(h, ...rows);
+  tip.classList.add('show');
+  const tw = tip.offsetWidth, hostW = host.clientWidth;
+  tip.style.left = Math.max(0, Math.min(hostW - tw, cx - tw/2)) + 'px';
+  tip.style.top = '0px';
+}
+function mountChart(host, W, H, label, body, focusable){
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img"
+      ${focusable ? 'tabindex="0"' : ''} aria-label="${esc(label)}">${body}</svg>`;
+  const tip = document.createElement('div'); tip.className = 'tip'; host.appendChild(tip);
+  return { svg: host.querySelector('svg'), tip };
+}
+
+function renderDash(){
+  const rows = dashRows();
+  const pts  = seriesOf(rows);
+
+  $('dashFilters').innerHTML = `<span class="lbl">Range</span>` + RANGES
+    .map(([k,lab])=>`<button class="${k===dashRange?'on':''}" data-range="${k}">${lab}</button>`).join('');
+  $('dashFilters').querySelectorAll('[data-range]').forEach(b=>{
+    b.onclick = ()=>{ dashRange = b.dataset.range; renderDash(); };
+  });
+
+  renderHero(pts);
+  renderTiles(pts);
+  renderLegend(pts);
+  lineChart($('e1rmChart'), pts);
+  volChart($('volChart'), rows);
+  renderTable(rows);
+}
+
+/* ---- hero: the one number the dashboard leads with ---- */
+function renderHero(pts){
+  const withData = LIFTS.filter(l => pts[l.id].length);
+  if(!withData.length){
+    $('hero').innerHTML = `<div class="lbl">Training total</div>
+      <div class="val">—</div>
+      <div class="dl muted">Log an AMRAP set to start tracking.</div>`;
+    return;
+  }
+  const best  = withData.reduce((s,l)=> s + Math.max(...pts[l.id].map(p=>p.v)), 0);
+  const first = withData.reduce((s,l)=> s + pts[l.id][0].v, 0);
+  const since = new Date(Math.min(...withData.map(l=>pts[l.id][0].t)));
+  $('hero').innerHTML = `
+    <div class="lbl">Training total — est. 1RM, ${withData.length} of ${LIFTS.length} lifts</div>
+    <div class="val">${nf(best)}<small>${U()}</small></div>
+    ${deltaHTML(best-first, `${U()} <span class="muted">since ${fmtMed(since)}</span>`)}`;
+}
+
+/* signed delta with an arrow glyph, so direction never rides on color alone */
+function deltaHTML(d, suffix){
+  const cls   = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+  const arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→';
+  return `<div class="dl ${cls}">${arrow} ${d>0?'+':''}${nf(d)} ${suffix}</div>`;
+}
+
+/* ---- KPI row: one stat tile per lift ---- */
+function renderTiles(pts){
+  const sparkW = Math.max(80, Math.floor((chartWidth() - 8)/2) - 24);
+  $('tiles').innerHTML = LIFTS.map(l=>{
+    const p = pts[l.id];
+    const key = `<span class="key" style="background:${cv(l.id)}"></span>`;
+    if(!p.length)
+      return `<div class="tile"><div class="lbl">${key}${l.name}</div>
+        <div class="val muted">—</div><div class="dl muted">no data</div></div>`;
+    const best = Math.max(...p.map(x=>x.v));
+    return `<div class="tile">
+      <div class="lbl">${key}${l.name}</div>
+      <div class="val">${nf(best)}<small>${U()}</small></div>
+      ${deltaHTML(best - p[0].v, `<span class="muted">vs. ${fmtShort(new Date(p[0].t))}</span>`)}
+      ${sparkline(p.slice(-12), sparkW, 26, cv(l.id))}
+    </div>`;
+  }).join('');
+}
+/* 12-point sparkline: de-emphasis stroke, current point in the series hue */
+function sparkline(p, w, h, color){
+  if(p.length < 2) return `<svg width="${w}" height="${h}"></svg>`;
+  const vs = p.map(x=>x.v);
+  const lo = Math.min(...vs), hi = Math.max(...vs), span = (hi-lo) || 1;
+  const pad = 4;
+  const X = i => pad + (i/(p.length-1)) * (w - pad*2);
+  const Y = v => pad + (1 - (v-lo)/span) * (h - pad*2);
+  const d = p.map((x,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(x.v).toFixed(1)}`).join(' ');
+  const lx = X(p.length-1).toFixed(1), ly = Y(vs[vs.length-1]).toFixed(1);
+  return `<svg width="${w}" height="${h}" aria-hidden="true">
+    <path d="${d}" fill="none" stroke="var(--viz-deemph)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lx}" cy="${ly}" r="4" style="fill:${color}" stroke="var(--viz-surface)" stroke-width="2"/>
+  </svg>`;
+}
+
+/* ---- legend: always present for >= 2 series ---- */
+function renderLegend(pts){
+  $('legend').innerHTML = LIFTS.filter(l=>pts[l.id].length).map(l=>
+    `<button class="${hiddenSeries.has(l.id)?'off':''}" data-s="${l.id}"
+       aria-pressed="${!hiddenSeries.has(l.id)}">
+       <span class="k" style="background:${cv(l.id)}"></span>${l.name}</button>`).join('');
+  $('legend').querySelectorAll('[data-s]').forEach(b=>{
+    b.onclick = ()=>{
+      const id = b.dataset.s;
+      hiddenSeries.has(id) ? hiddenSeries.delete(id) : hiddenSeries.add(id);
+      renderDash();
+    };
+  });
+}
+
+/* ---- line chart: est. 1RM over time ---- */
+function lineChart(host, pts){
+  const W = chartWidth();
+  const P = { t:14, r:66, b:26, l:44 }, plotH = 172;
+  const H = P.t + plotH + P.b;                       // container includes the x-axis band
+  const active = LIFTS.filter(l => !hiddenSeries.has(l.id) && pts[l.id].length);
+  const all = active.flatMap(l => pts[l.id]);
+
+  if(!all.length){
+    host.innerHTML = `<p class="note">${LIFTS.some(l=>pts[l.id].length)
+      ? 'All lifts hidden — tap a name above to bring one back.'
+      : 'No AMRAP sets logged in this range yet.'}</p>`;
+    return;
+  }
+
+  const tMin = Math.min(...all.map(p=>p.t)), tMax = Math.max(...all.map(p=>p.t));
+  const sc = niceScale(Math.min(...all.map(p=>p.v)), Math.max(...all.map(p=>p.v)), 4);
+  const spanT = tMax - tMin;
+  const x = t => spanT > 0 ? P.l + ((t-tMin)/spanT)*(W-P.l-P.r) : P.l + (W-P.l-P.r)/2;
+  const y = v => P.t + plotH - ((v-sc.lo)/(sc.hi-sc.lo))*plotH;
+
+  const baseY = P.t + plotH;
+  let g = yAxis(sc, y, P, W, nf);
+
+  // x ticks
+  const nTicks = spanT > 0 ? 4 : 1;
+  for(let i=0;i<nTicks;i++){
+    const d = new Date(tMin + (spanT*i)/(nTicks-1 || 1));
+    g += svgText(x(+d), H-9, `${d.getMonth()+1}/${d.getDate()}`,
+      { anchor: i===0 ? 'start' : i===nTicks-1 ? 'end' : 'middle' });
+  }
+  g += svgLine(P.l, baseY, W-P.r, baseY, 'var(--viz-axis)');
+
+  // series lines — 2px, round joins
+  active.forEach(l=>{
+    const p = pts[l.id];
+    if(p.length < 2) return;
+    const d = p.map((q,i)=>`${i?'L':'M'}${n1(x(q.t))},${n1(y(q.v))}`).join(' ');
+    g += `<path d="${d}" fill="none" style="stroke:${cv(l.id)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  });
+
+  // end dots + direct labels (mandatory at 4 series), nudged apart with leader lines
+  const LABEL_GAP = 13;
+  const ends = active.map(l=>{
+    const q = pts[l.id][pts[l.id].length-1];
+    return { id:l.id, name:l.short, px:x(q.t), py:y(q.v), ty:y(q.v) };
+  }).sort((a,b)=>a.ty-b.ty);
+  for(let i=1;i<ends.length;i++)
+    if(ends[i].ty - ends[i-1].ty < LABEL_GAP) ends[i].ty = ends[i-1].ty + LABEL_GAP;
+  if(ends.length){                                  // pull the stack back inside the plot
+    const over  = ends[ends.length-1].ty - baseY;
+    if(over > 0)  ends.forEach(e => e.ty -= over);
+    const under = P.t - ends[0].ty;
+    if(under > 0) ends.forEach(e => e.ty += under);
+  }
+
+  ends.forEach(e=>{
+    if(Math.abs(e.ty - e.py) > 1.5)   // leader line instead of a detached stack
+      g += `<path d="M${n1(e.px+5)},${n1(e.py)} L${n1(e.px+11)},${n1(e.ty)}"
+              fill="none" style="stroke:${cv(e.id)}" stroke-width="1" opacity=".55"/>`;
+    g += svgDot(e.px, e.py, cv(e.id))
+       + svgText(e.px+13, e.ty+3.5, e.name, {size:11, weight:600, fill:'var(--viz-ink)'});
+  });
+
+  // crosshair layer
+  const xs = [...new Set(all.map(p=>p.t))].sort((a,b)=>a-b);
+  g += `<line id="xh" x1="0" y1="${P.t}" x2="0" y2="${baseY}" stroke="var(--viz-muted)"
+          stroke-width="1" opacity="0"/><g id="xhdots"></g>`;
+
+  const { svg, tip } = mountChart(host, W, H,
+    `Estimated one-rep max over time for ${active.map(l=>l.name).join(', ')}`, g, true);
+  const xh = svg.querySelector('#xh'), dots = svg.querySelector('#xhdots');
+  let cur = -1;
+
+  function showAt(idx){
+    if(idx < 0 || idx >= xs.length) return;
+    cur = idx;
+    const t = xs[idx], px = x(t);
+    xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('opacity','.45');
+
+    let marks = '';
+    const rows = [];
+    active.forEach(l=>{
+      const p = pts[l.id];
+      const exact = p.find(q => q.t === t);
+      const q = exact || [...p].reverse().find(q => q.t <= t);
+      if(!q) return;
+      rows.push(tipRow(cv(l.id), l.name + (exact ? '' : ' (last)'), `${nf(q.v)} ${U()}`, !exact));
+      if(exact) marks += svgDot(px, y(q.v), cv(l.id));
+    });
+    dots.innerHTML = marks;
+    showTip(tip, host, px,
+      new Date(t).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'}), rows);
+  }
+  function hide(){ tip.classList.remove('show'); xh.setAttribute('opacity','0'); dots.innerHTML=''; }
+  function nearest(clientX){
+    const r = svg.getBoundingClientRect();
+    const px = (clientX - r.left) * (W / r.width);
+    let bi = 0, bd = Infinity;
+    xs.forEach((t,i)=>{ const d = Math.abs(x(t)-px); if(d<bd){ bd=d; bi=i; } });
+    return bi;
+  }
+  svg.addEventListener('pointermove', e => showAt(nearest(e.clientX)));
+  svg.addEventListener('pointerdown', e => showAt(nearest(e.clientX)));
+  svg.addEventListener('pointerleave', hide);
+  svg.addEventListener('blur', hide);
+  svg.addEventListener('focus', ()=> showAt(cur < 0 ? xs.length-1 : cur));
+  svg.addEventListener('keydown', e=>{
+    if(e.key === 'ArrowRight'){ showAt(Math.min(xs.length-1, cur+1)); e.preventDefault(); }
+    if(e.key === 'ArrowLeft'){  showAt(Math.max(0, cur-1)); e.preventDefault(); }
+    if(e.key === 'Escape') hide();
+  });
+}
+
+/* ---- column chart: tonnage by cycle (single series -> slot 1, no legend) ---- */
+function volChart(host, rows){
+  const byCycle = new Map();
+  rows.forEach(h=>{
+    const t = tonnage(h);
+    if(t) byCycle.set(h.cycle, (byCycle.get(h.cycle)||0) + t);
+  });
+  const data = [...byCycle.entries()].sort((a,b)=>a[0]-b[0]).map(([c,v])=>({c,v}));
+  if(!data.length){ host.innerHTML = `<p class="note">No sessions in this range yet.</p>`; return; }
+
+  const W = chartWidth();
+  const P = { t:16, r:8, b:26, l:52 }, plotH = 132;
+  const H = P.t + plotH + P.b;
+  const sc = niceScale(0, Math.max(...data.map(d=>d.v)), 3);   // bars must start at zero
+  const y = v => P.t + plotH - (v/sc.hi)*plotH;
+  const band = (W - P.l - P.r) / data.length;
+  const bw = Math.min(24, band * 0.55);                        // cap thickness; leftover is air
+  const bx = i => P.l + band*i + (band-bw)/2;
+
+  const baseY = P.t + plotH;
+  const maxV = Math.max(...data.map(d=>d.v));
+  let g = yAxis(sc, y, P, W, compact);
+
+  data.forEach((d,i)=>{
+    const X = bx(i), Y = y(d.v), mid = X + bw/2;
+    const r = Math.min(4, Math.max(2, baseY - Y)/2, bw/2);
+    // 4px rounded data-end, square at the baseline
+    g += `<path d="M${X},${baseY} L${X},${Y+r} Q${X},${Y} ${X+r},${Y}
+            L${X+bw-r},${Y} Q${X+bw},${Y} ${X+bw},${Y+r} L${X+bw},${baseY} Z"
+            style="fill:var(--s1)" data-bar="${i}"/>`;
+    g += svgText(mid, H-9, `C${d.c}`, {anchor:'middle'});
+    if(d.v === maxV || i === data.length-1)      // label selectively: the peak and the latest
+      g += svgText(mid, Y-6, compact(d.v), {anchor:'middle', weight:700, fill:'var(--viz-ink)'});
+    // hit target is wider than the bar (>= 24px)
+    g += `<rect x="${n1(mid - Math.max(12, band/2))}" y="${P.t}"
+            width="${n1(Math.max(24, band))}" height="${plotH}" fill="transparent" data-hit="${i}"/>`;
+  });
+
+  const { svg, tip } = mountChart(host, W, H, 'Training tonnage by cycle', g, false);
+
+  svg.querySelectorAll('[data-hit]').forEach(r=>{
+    const i = +r.dataset.hit, d = data[i];
+    const bar = svg.querySelector(`[data-bar="${i}"]`);
+    const on = ()=>{
+      bar.style.filter = 'brightness(1.25)';        // the hovered mark lifts
+      showTip(tip, host, (bx(i)+bw/2) * (host.clientWidth / W), `Cycle ${d.c}`,
+              [tipRow('var(--s1)', 'Tonnage', `${nf(d.v)} ${U()}`, false)]);
+    };
+    const off = ()=>{ bar.style.filter=''; tip.classList.remove('show'); };
+    r.addEventListener('pointerenter', on);
+    r.addEventListener('pointerdown', on);
+    r.addEventListener('pointerleave', off);
+  });
+}
+
+/* ---- table view: the WCAG-clean twin of both charts ---- */
+function renderTable(rows){
+  $('tblToggle').textContent = showTable ? 'Hide table' : 'Show table';
+  if(!showTable){
+    $('tableWrap').innerHTML = `<p class="note">${plural(rows.length,'session')} in range.
+      Every charted value is listed here.</p>`;
+    return;
+  }
+  if(!rows.length){ $('tableWrap').innerHTML = `<p class="note">Nothing logged in this range.</p>`; return; }
+  const body = rows.slice().reverse().map(h=>{
+    const l = liftById(h.lift);
+    const idx = S.history.indexOf(h);
+    return `<tr>
+      <td>${new Date(h.date).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</td>
+      <td style="text-align:left">C${h.cycle} W${h.week}</td>
+      <td style="text-align:left">${esc(l?l.name:h.lift)}</td>
+      <td>${fmt(h.topWeight)}</td>
+      <td>${h.amrapReps ?? '—'}</td>
+      <td>${h.e1rm || '—'}</td>
+      <td>${h.bbb ? `${h.bbb.done}/${h.bbb.sets}<span class="muted">×${h.bbb.reps}</span>` : '—'}</td>
+      <td>${nf(tonnage(h))}</td>
+      <td><span class="del" data-del="${idx}" role="button" title="Delete">✕</span></td>
+    </tr>`;
+  }).join('');
+  $('tableWrap').innerHTML = `<div style="overflow-x:auto"><table class="tbl">
+    <thead><tr><th>Date</th><th style="text-align:left">Slot</th><th style="text-align:left">Lift</th>
+      <th>Top set</th><th>Reps</th><th>e1RM</th><th>BBB</th><th>Tonnage</th><th></th></tr></thead>
+    <tbody>${body}</tbody></table></div>`;
+  $('tableWrap').querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = ()=>{
+      const idx = +b.dataset.del, h = S.history[idx];
+      if(!h) return;
+      S.history.splice(idx,1);
+      delete S.done[doneKey(h.cycle,h.week,h.lift)];
+      save(); render();
+    };
+  });
+}
+
+$('tblToggle').onclick = ()=>{ showTable = !showTable; renderTable(dashRows()); };
+
+let rzT;
+window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT = setTimeout(renderDash, 150); });
+
+function renderSettings(){
+  renderTMFields();
+  renderPrefs();
+  renderBBBSettings();
+  renderSchedule();
+}
+
+function renderTMFields(){
+  $('tmPctLabel').textContent = S.settings.tmPct;
+  $('tmFields').innerHTML = LIFTS.map(l=>`
+    <div class="grid2" style="margin-bottom:2px;">
+      <label class="fld"><span>${l.name} — 1RM</span>
+        <input type="number" inputmode="decimal" step="0.5" data-rm="${l.id}" value="${S.oneRMs[l.id]||''}" placeholder="—" /></label>
+      <label class="fld"><span>${l.name} — TM</span>
+        <input type="number" inputmode="decimal" step="0.5" data-tm="${l.id}" value="${S.tms[l.id]||''}" placeholder="—" /></label>
+    </div>`).join('');
+
+  // entering a 1RM derives the TM; entering a TM overrides it directly
+  $('tmFields').querySelectorAll('[data-rm]').forEach(inp=>{
+    inp.onchange = ()=>{
+      const id = inp.dataset.rm, v = parseFloat(inp.value)||0;
+      S.oneRMs[id] = v;
+      S.tms[id] = v ? roundTo(v * S.settings.tmPct/100, S.settings.roundTo || 5) : 0;
+      save(); render();
+    };
+  });
+  $('tmFields').querySelectorAll('[data-tm]').forEach(inp=>{
+    inp.onchange = ()=>{ S.tms[inp.dataset.tm] = parseFloat(inp.value)||0; save(); render(); };
+  });
+}
+
+function renderPrefs(){
+  $('setUnits').value = S.settings.units;
+  $('setTmPct').value = S.settings.tmPct;
+  $('setBar').value   = S.settings.bar;
+  $('setCycle').value = S.cycle;
+  $('setWeek').value  = S.week;
+
+  const opts = U()==='lb' ? [5,2.5,1] : [2.5,1.25,0.5];
+  $('setRound').innerHTML = opts.map(o=>`<option value="${o}">${o} ${U()}</option>`).join('');
+  $('setRound').value = String(S.settings.roundTo);
+}
+
+function renderBBBSettings(){
+  $('setBBB').value       = S.settings.bbb;
+  $('setBBBLift').value   = S.settings.bbbLift;
+  $('setBBBPct').value    = String(S.settings.bbbPct);
+  $('setBBBDeload').value = S.settings.bbbDeload ? 'yes' : 'no';
+  $('bbbOpts').style.display = S.settings.bbb === 'on' ? 'block' : 'none';
+  if(S.settings.bbb !== 'on') return;
+  const ex = LIFTS.map(l=>{
+    const b = bbbFor(l.id, 1);
+    return b ? `${l.short} → ${b.liftId!==l.id?liftById(b.liftId).short+' ':''}${fmt(b.weight)}` : `${l.short} → —`;
+  }).join(' · ');
+  $('bbbNote').innerHTML = `Cycle ${S.cycle} at ${S.settings.bbbPct==='wave'
+    ? BBB_WAVE[(S.cycle-1)%BBB_WAVE.length]+'% (wave)' : S.settings.bbbPct+'%'}: ${ex}`;
+}
+
+function renderSchedule(){
+  $('schedCycleNum').textContent = S.cycle;
+  $('setStart').value = S.settings.startDate || '';
+  const sel = trainDays();
+  $('dayToggles').innerHTML = DAY_NAMES.map((d,i)=>
+    `<button type="button" class="${sel.includes(i)?'on':''}" data-day="${i}">${d}</button>`).join('');
+  $('dayToggles').querySelectorAll('[data-day]').forEach(b=>{
+    b.onclick = ()=>{
+      const i = +b.dataset.day, cur = trainDays();
+      S.settings.trainDays = cur.includes(i) ? cur.filter(x=>x!==i) : cur.concat(i).sort((a,b)=>a-b);
+      save(); render();
+    };
+  });
+  const first = dateForWorkout(1,0), last = dateForWorkout(WEEKS.length, LIFTS.length-1);
+  $('schedPreview').innerHTML = first
+    ? `Cycle ${S.cycle}: <b>${fmtMed(first)}</b> → <b>${fmtMed(last)}</b> · ${SESSIONS_PER_CYCLE} sessions,
+       ${trainDays().length}×/week (${Math.round((last-first)/DAY_MS)+1} days)`
+    : `<span style="color:var(--warn)">Pick at least one training day.</span>`;
+}
+
+/* ================= Actions ================= */
+$('saveBtn').onclick = ()=>{
+  const wk = WEEKS[viewWeek-1];
+  const tm = S.tms[selLift];
+  const amrapSet = wk.sets.find(s=>s.amrap);
+  const topSet = wk.sets[wk.sets.length-1];
+  const topWeight = setWeight(tm, topSet.pct);
+
+  let reps = null;
+  const inp = document.querySelector('.amrapin');
+  if(inp) reps = inp.value === '' ? amrapSet.reps : parseInt(inp.value,10);
+
+  const est = amrapSet ? e1rm(setWeight(tm, amrapSet.pct), reps) : 0;
+  const prevBest = bestE1RM(selLift);
+
+  const key = doneKey(S.cycle, viewWeek, selLift);
+  // replace any existing entry for this slot
+  const existing = S.history.findIndex(h=>h.cycle===S.cycle && h.week===viewWeek && h.lift===selLift);
+  const cfg = bbbFor(selLift, viewWeek);
+  const bbb = cfg
+    ? { liftId:cfg.liftId, weight:cfg.weight, sets:cfg.sets, reps:cfg.reps, pct:cfg.pct,
+        done: (bbbDraft.key === key ? bbbDraft.done : 0) }
+    : null;
+
+  const entry = {
+    date: new Date().toISOString(), cycle:S.cycle, week:viewWeek, lift:selLift,
+    tm, topWeight, amrapReps:reps, e1rm:est, units:U(), bbb,
+  };
+  if(existing >= 0) S.history[existing] = entry; else S.history.push(entry);
+  S.done[key] = { date:entry.date, amrapReps:reps, e1rm:est, tm, bbb };
+
+  // auto-advance week when all four lifts done
+  if(viewWeek === S.week && LIFTS.every(l=>S.done[doneKey(S.cycle,S.week,l.id)]) && S.week < 4){
+    S.week++; viewWeek = S.week;
+  }
+  // hop to next unfinished lift in this week
+  const next = LIFTS.find(l=>!S.done[doneKey(S.cycle,viewWeek,l.id)]);
+  if(next) selLift = next.id;
+
+  save(); render();
+  toast(est && est > prevBest && prevBest ? `PR! est. 1RM ${est} ${U()}` : 'Logged ✔');
+};
+
+$('clearBtn').onclick = ()=>{
+  const key = doneKey(S.cycle, viewWeek, selLift);
+  if(!S.done[key]) return toast('Nothing to undo');
+  delete S.done[key];
+  const i = S.history.findIndex(h=>h.cycle===S.cycle && h.week===viewWeek && h.lift===selLift);
+  if(i>=0) S.history.splice(i,1);
+  save(); render(); toast('Removed');
+};
+
+$('nextCycleBtn').onclick = ()=>{
+  LIFTS.forEach(l=>{ S.tms[l.id] = S.tms[l.id] ? S.tms[l.id] + tmBump(l.id) : 0; });
+  S.cycle++; S.week = 1; viewWeek = 1; selLift = LIFTS[0].id;
+  // roll the schedule forward: new cycle begins on the next training day from today
+  const nd = nextTrainDay(today());
+  if(nd) S.settings.startDate = toISODate(nd);
+  save(); render();
+  const f = dateForWorkout(1,0);
+  toast(f ? `Cycle ${S.cycle} · starts ${fmtShort(f)}` : `Cycle ${S.cycle} — TMs bumped`);
+};
+
+['setUnits','setTmPct','setBar','setBBB','setBBBLift','setBBBPct','setRound'].forEach(id=>{
+  $(id).onchange = ()=>{
+    const map = {setUnits:'units', setTmPct:'tmPct', setBar:'bar', setBBB:'bbb',
+                 setBBBLift:'bbbLift', setBBBPct:'bbbPct', setRound:'roundTo'};
+    let v = $(id).value;
+    if(id==='setTmPct'||id==='setBar'||id==='setRound') v = parseFloat(v);
+    if(id==='setUnits' && v !== S.settings.units){
+      const k = v==='lb' ? 2.20462 : 1/2.20462;
+      const inc = v==='lb' ? 5 : 2.5;
+      LIFTS.forEach(l=>{
+        if(S.tms[l.id])    S.tms[l.id]    = roundTo(S.tms[l.id]*k, inc);
+        if(S.oneRMs[l.id]) S.oneRMs[l.id] = roundTo(S.oneRMs[l.id]*k, inc);
+      });
+      S.settings.roundTo = inc;
+      S.settings.bar = v==='lb' ? 45 : 20;
+    }
+    S.settings[map[id]] = v;
+    save(); render();
+  };
+});
+$('setBBBDeload').onchange = ()=>{
+  S.settings.bbbDeload = $('setBBBDeload').value === 'yes';
+  save(); render();
+};
+$('setStart').onchange = ()=>{
+  if($('setStart').value) S.settings.startDate = $('setStart').value;
+  save(); render();
+};
+$('startTodayBtn').onclick = ()=>{
+  S.settings.startDate = toISODate(today());
+  save(); render();
+  const f = dateForWorkout(1,0);
+  toast(f ? `Cycle ${S.cycle} starts ${fmtShort(f)}` : 'Start date set');
+};
+$('setCycle').onchange = ()=>{ S.cycle = Math.max(1, parseInt($('setCycle').value,10)||1); save(); render(); };
+$('setWeek').onchange  = ()=>{ S.week = +$('setWeek').value; viewWeek = S.week; save(); render(); };
+
+$('exportBtn').onclick = ()=>{
+  const blob = new Blob([JSON.stringify(S,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `wendler-531-backup.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$('importBtn').onclick = ()=> $('fileIn').click();
+$('fileIn').onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const data = JSON.parse(r.result);
+      if(!data.tms) throw new Error('bad file');
+      localStorage.setItem(KEY, JSON.stringify(data));
+      S = load(); viewWeek = S.week; render(); toast('Imported');
+    }catch(err){ toast('Import failed'); }
+  };
+  r.readAsText(f); e.target.value='';
+};
+$('resetBtn').onclick = ()=>{
+  if(!confirm('Erase all training maxes and history?')) return;
+  localStorage.removeItem(KEY);
+  S = structuredClone(DEFAULTS); viewWeek = 1; selLift = LIFTS[0].id;
+  render(); toast('Reset');
+};
+
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    $('v-'+b.dataset.view).classList.add('active');
+    window.scrollTo({top:0});
+  };
+});
+
+let toastT;
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* first run: land on the next unfinished lift */
+(function init(){
+  const sched = cycleSchedule();
+  // prefer today's scheduled session, then the oldest missed one, then the next unfinished lift
+  const pick = sched.find(s => isToday(s.date) && !s.done)
+            || sched.find(s => !s.done && isPast(s.date))
+            || sched.find(s => !s.done && s.week === S.week)
+            || sched.find(s => !s.done);
+  if(pick){ viewWeek = pick.week; selLift = pick.liftId; }
+  render();
+  if(!LIFTS.some(l=>S.tms[l.id])){
+    document.querySelector('nav button[data-view="set"]').click();
+  }
+})();
+</script>
+</body>
+</html>
