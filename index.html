@@ -364,6 +364,7 @@
         <button class="sm" id="resetBtn" style="color:#ff8080;">Reset all</button>
       </div>
       <input type="file" id="fileIn" accept="application/json" style="display:none;" />
+      <p class="note" id="storageStatus">Checking storage…</p>
     </div>
   </section>
 </div>
@@ -446,7 +447,102 @@ function load(){
     });
   }catch(e){ return structuredClone(DEFAULTS); }
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+/* Writes go to localStorage (source of truth) and are mirrored into IndexedDB as a
+   second copy. A silent write failure is the one bug that loses months of logs, so
+   the write is read back and verified, and any failure is surfaced instead of swallowed. */
+let saveState = {ok:true, at:null, err:null};
+
+function save(){
+  S.savedAt = new Date().toISOString();
+  let json;
+  try{
+    json = JSON.stringify(S);
+    localStorage.setItem(KEY, json);
+    if(localStorage.getItem(KEY) !== json) throw new Error('write did not stick');
+    saveState = {ok:true, at:Date.now(), err:null};
+  }catch(e){
+    saveState = {ok:false, at:saveState.at, err:e.name || String(e)};
+    toast('⚠️ Save failed — export a backup');
+  }
+  if(json) mirrorPut(json);   // best-effort; never blocks or throws into the caller
+  renderStorageStatus();
+}
+
+/* ---- IndexedDB mirror: one key, one value, no schema to outgrow ---- */
+const MIRROR_DB = 'wendler531', MIRROR_STORE = 'state';
+function idbOpen(){
+  return new Promise((res, rej) => {
+    if(!window.indexedDB) return rej(new Error('no indexedDB'));
+    const r = indexedDB.open(MIRROR_DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(MIRROR_STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror   = () => rej(r.error);
+  });
+}
+function mirrorPut(json){
+  idbOpen().then(db => {
+    db.transaction(MIRROR_STORE, 'readwrite').objectStore(MIRROR_STORE).put(json, KEY);
+  }).catch(()=>{});
+}
+function mirrorGet(){
+  return idbOpen().then(db => new Promise(res => {
+    const rq = db.transaction(MIRROR_STORE, 'readonly').objectStore(MIRROR_STORE).get(KEY);
+    rq.onsuccess = () => res(rq.result || null);
+    rq.onerror   = () => res(null);
+  })).catch(() => null);
+}
+
+/* If localStorage came up empty but the mirror has data, restore it. Covers the case
+   where one store is cleared and the other survives. */
+function mirrorClear(){
+  idbOpen().then(db => {
+    db.transaction(MIRROR_STORE, 'readwrite').objectStore(MIRROR_STORE).delete(KEY);
+  }).catch(()=>{});
+}
+
+function recoverIfEmpty(){
+  const raw = localStorage.getItem(KEY);
+  if(raw){ mirrorPut(raw); return; }   // already have data — just keep the mirror current
+  mirrorGet().then(json => {
+    if(!json) return;
+    try{
+      const data = JSON.parse(json);
+      if(!data || !data.tms) return;
+      if(Object.values(data.tms).every(v => !v)) return;   // nothing worth restoring
+      localStorage.setItem(KEY, json);
+      S = load(); viewWeek = S.week; render();
+      toast('Recovered your data from backup');
+    }catch(e){}
+  });
+}
+
+/* Persistent mode exempts the origin from eviction (Safari 17+, Chrome, Firefox).
+   Without it, WebKit can delete script-written storage after 7 days of no use. */
+let persistMode = 'checking';
+async function requestPersistence(){
+  try{
+    if(!navigator.storage || !navigator.storage.persist){ persistMode = 'unsupported'; }
+    else if(await navigator.storage.persisted()){ persistMode = 'granted'; }
+    else { persistMode = await navigator.storage.persist() ? 'granted' : 'denied'; }
+  }catch(e){ persistMode = 'unsupported'; }
+  renderStorageStatus();
+}
+
+function renderStorageStatus(){
+  const el = $('storageStatus'); if(!el) return;
+  const sessions = Object.keys(S.done || {}).length;
+  const saved = saveState.at ? new Date(saveState.at).toLocaleTimeString() : 'not yet this visit';
+  const mode = {granted:'protected from auto-deletion',
+                denied:'NOT protected — add this app to your home screen',
+                unsupported:'not supported by this browser',
+                checking:'checking…'}[persistMode];
+  el.innerHTML =
+    (saveState.ok ? '' : `<b style="color:#ff8080;">Last save FAILED (${saveState.err}).</b><br>`) +
+    `${sessions} session${sessions===1?'':'s'} recorded · last saved ${saved}<br>Storage: ${mode}`;
+  navigator.storage?.estimate?.().then(e => {
+    if(e && e.usage != null) el.innerHTML += `<br>Using ${(e.usage/1024).toFixed(0)} KB`;
+  }).catch(()=>{});
+}
 
 /* ================= Formatting & lookups ================= */
 const roundTo = (v, inc) => Math.round(v/inc)*inc;
@@ -1389,7 +1485,7 @@ $('fileIn').onchange = e=>{
       const data = JSON.parse(r.result);
       if(!data.tms) throw new Error('bad file');
       localStorage.setItem(KEY, JSON.stringify(data));
-      S = load(); viewWeek = S.week; render(); toast('Imported');
+      S = load(); viewWeek = S.week; save(); render(); toast('Imported');
     }catch(err){ toast('Import failed'); }
   };
   r.readAsText(f); e.target.value='';
@@ -1397,8 +1493,9 @@ $('fileIn').onchange = e=>{
 $('resetBtn').onclick = ()=>{
   if(!confirm('Erase all training maxes and history?')) return;
   localStorage.removeItem(KEY);
+  mirrorClear();   // else the next load would "recover" what was just erased
   S = structuredClone(DEFAULTS); viewWeek = 1; selLift = LIFTS[0].id;
-  render(); toast('Reset');
+  render(); renderStorageStatus(); toast('Reset');
 };
 
 document.querySelectorAll('nav button').forEach(b=>{
@@ -1407,6 +1504,7 @@ document.querySelectorAll('nav button').forEach(b=>{
     document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     $('v-'+b.dataset.view).classList.add('active');
+    if(b.dataset.view === 'set') renderStorageStatus();
     window.scrollTo({top:0});
   };
 });
@@ -1430,6 +1528,9 @@ function toast(msg){
   if(!LIFTS.some(l=>S.tms[l.id])){
     document.querySelector('nav button[data-view="set"]').click();
   }
+  requestPersistence();   // ask to be exempt from storage eviction
+  recoverIfEmpty();       // fall back to the IndexedDB mirror if localStorage was wiped
+  renderStorageStatus();
 })();
 
 /* offline support: cache the app shell so the gym has no say in whether this opens */
