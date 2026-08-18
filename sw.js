@@ -1,6 +1,6 @@
 /* 5/3/1 Tracker service worker — offline app shell.
    Bump CACHE_VERSION whenever the shell changes so old caches get dropped. */
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE = `531-shell-${CACHE_VERSION}`;
 
 /* Relative URLs resolve against the SW scope, so this works at / or /wendlerguido/. */

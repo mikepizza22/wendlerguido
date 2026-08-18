@@ -346,6 +346,18 @@
         <div class="days" id="dayToggles"></div></label>
       <p class="note" id="schedPreview"></p>
       <button class="sm ghost" id="startTodayBtn" style="margin-top:8px;">Start this cycle today</button>
+
+      <h2 style="margin-top:18px;">Missed a workout?</h2>
+      <p class="note" style="margin:0 0 10px;">Moves the workouts you haven't logged yet. Anything
+        already logged keeps the day you actually did it.</p>
+      <button class="sm" id="resumeTodayBtn" style="width:100%;">Pick up where I left off — next workout today</button>
+      <div class="row wrap" style="margin-top:8px;">
+        <span style="font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--dim);">Or shift the rest</span>
+        <button class="sm ghost" id="nudgeBackBtn">− 1 day</button>
+        <button class="sm ghost" id="nudgeFwdBtn">+ 1 day</button>
+        <button class="sm ghost" id="nudgeWeekBtn">+ 1 week</button>
+      </div>
+      <p class="note" id="adjustNote"></p>
     </div>
 
     <div class="panel">
@@ -421,6 +433,7 @@ const DEFAULTS = {
   cycle: 1,
   week: 1,
   done: {},      // "cycle-week-liftId" -> { date, amrapReps, e1rm, tm }
+  dates: {},     // "cycle-week-liftId" -> "YYYY-MM-DD", set only when rescheduled
   history: [],   // newest last
 };
 
@@ -441,6 +454,7 @@ function load(){
       parsed.settings.bbb = 'on';
     }
     return Object.assign(structuredClone(DEFAULTS), parsed, {
+      dates:    Object.assign({}, parsed.dates||{}),   // absent in pre-reschedule saves
       settings: Object.assign({}, DEFAULTS.settings, parsed.settings||{}),
       tms:      Object.assign({}, DEFAULTS.tms,      parsed.tms||{}),
       oneRMs:   Object.assign({}, DEFAULTS.oneRMs,   parsed.oneRMs||{}),
@@ -618,21 +632,94 @@ function nextTrainDay(from){
   }
   return null;
 }
+/* last training day on or before `from` */
+function prevTrainDay(from){
+  const days = trainDays();
+  if(!days.length) return null;
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  for(let i=0;i<7;i++){
+    if(days.includes(d.getDay())) return d;
+    d.setDate(d.getDate()-1);
+  }
+  return null;
+}
+const dayBefore = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()-1);
+const dayAfter  = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()+1);
+/* `d` moved n training days later (n<0 = earlier); n=0 snaps onto a training day */
+function shiftTrainDays(d, n){
+  let out = n < 0 ? prevTrainDay(d) : nextTrainDay(d);
+  for(let i=0; out && i<Math.abs(n); i++)
+    out = n < 0 ? prevTrainDay(dayBefore(out)) : nextTrainDay(dayAfter(out));
+  return out;
+}
+const sessionIdx  = (week, liftIdx) => (week-1)*LIFTS.length + liftIdx;
+const sessionWeek = i => Math.floor(i/LIFTS.length) + 1;
+const sessionLift = i => LIFTS[i % LIFTS.length];
+const dateKey = i => doneKey(S.cycle, sessionWeek(i), sessionLift(i).id);
 /* the i-th session of the cycle (0..15) mapped onto the training-day pattern */
 function dateForWorkout(week, liftIdx){
+  const i = sessionIdx(week, liftIdx);
+  const moved = parseLocalDate(S.dates[dateKey(i)]);   // set by a reschedule
+  if(moved) return moved;
   const days = trainDays();
   const start = parseLocalDate(S.settings.startDate);
   if(!days.length || !start) return null;
   const d0 = nextTrainDay(start);
   if(!d0) return null;
   const per = days.length;
-  const i = (week-1)*LIFTS.length + liftIdx;
   const si = days.indexOf(d0.getDay());
   const rot = days.slice(si).concat(days.slice(0,si)); // weekday order starting at d0
   const offset = Math.floor(i/per)*7 + ((rot[i%per] - rot[0] + 7) % 7);
   const out = new Date(d0);
   out.setDate(out.getDate() + offset);
   return out;
+}
+
+/* ---- Rescheduling ----
+   Sessions run on consecutive training days, so an untouched cycle is fully described
+   by its start date. A reschedule pins explicit dates for session `from` onward and
+   leaves everything before it alone, so workouts already logged keep the day they
+   happened instead of being dragged along by the shift. */
+function rescheduleFrom(from, firstDate){
+  const d0 = nextTrainDay(firstDate);
+  if(!d0) return false;
+  if(from <= 0){                    // nothing logged before it — just move the anchor
+    clearReschedules();
+    S.settings.startDate = toISODate(d0);
+    return true;
+  }
+  let d = d0;
+  for(let i=from; i<SESSIONS_PER_CYCLE; i++){
+    S.dates[dateKey(i)] = toISODate(d);
+    d = nextTrainDay(dayAfter(d));
+  }
+  return true;
+}
+/* first session of this cycle with nothing logged against it, or -1 if the cycle is done */
+function firstUnloggedIdx(){
+  for(let i=0;i<SESSIONS_PER_CYCLE;i++)
+    if(!S.done[doneKey(S.cycle, sessionWeek(i), sessionLift(i).id)]) return i;
+  return -1;
+}
+const rescheduledCount = () => {
+  let n = 0;
+  for(let i=0;i<SESSIONS_PER_CYCLE;i++) if(S.dates[dateKey(i)]) n++;
+  return n;
+};
+function clearReschedules(){
+  for(let i=0;i<SESSIONS_PER_CYCLE;i++) delete S.dates[dateKey(i)];
+}
+/* Push the un-logged tail of the cycle by n training days (n<0 pulls it earlier). */
+function nudgeSchedule(n){
+  const from = firstUnloggedIdx();
+  if(from < 0) return toast('Cycle is already complete');
+  const cur = dateForWorkout(sessionWeek(from), from % LIFTS.length);
+  if(!cur) return toast('Set a start date and training days first');
+  const target = shiftTrainDays(cur, n);
+  if(!target || !rescheduleFrom(from, target)) return toast('Pick at least one training day');
+  save(); render();
+  const d = dateForWorkout(sessionWeek(from), from % LIFTS.length);
+  toast(`${sessionLift(from).short} week ${sessionWeek(from)} → ${fmtShort(d)}`);
 }
 function cycleSchedule(){
   const out = [];
@@ -716,7 +803,8 @@ function scheduleStatusHTML(date, rec){
   }
   if(isToday(date)) return `<b style="color:var(--accent2)">Today — ${fmtLong(date)}</b>`;
   if(isPast(date))
-    return `<span style="color:var(--warn)">Was ${fmtLong(date)} — ${plural(Math.round((today()-date)/DAY_MS),'day')} ago</span>`;
+    return `<span style="color:var(--warn)">Was ${fmtLong(date)} — ${plural(Math.round((today()-date)/DAY_MS),'day')} ago</span>`
+         + ` <button class="sm ghost" id="moveHereBtn" style="margin-left:6px;">Move to today</button>`;
   return `Scheduled ${fmtLong(date)} <span class="muted">· in ${plural(Math.round((date-today())/DAY_MS),'day')}</span>`;
 }
 
@@ -735,8 +823,16 @@ function renderWorkout(){
   const tm   = S.tms[selLift];
   const rec  = S.done[doneKey(S.cycle, viewWeek, selLift)];
 
+  const li = LIFTS.indexOf(lift);
   $('workoutTitle').textContent = `${lift.name} · Week ${viewWeek} — ${wk.label}`;
-  $('workoutDate').innerHTML = scheduleStatusHTML(dateForWorkout(viewWeek, LIFTS.indexOf(lift)), rec);
+  $('workoutDate').innerHTML = scheduleStatusHTML(dateForWorkout(viewWeek, li), rec);
+  // overdue: drop this workout on today and slide the rest of the cycle after it
+  if($('moveHereBtn')) $('moveHereBtn').onclick = ()=>{
+    const from = sessionIdx(viewWeek, li);
+    if(!rescheduleFrom(from, today())) return toast('Pick at least one training day');
+    save(); render();
+    toast(`Moved to ${fmtShort(dateForWorkout(viewWeek, li))} — rest of cycle follows`);
+  };
 
   if(!tm){
     $('warmups').innerHTML = `<p class="note">No training max set for ${lift.name}. Add one in Settings.</p>`;
@@ -1359,6 +1455,7 @@ function renderSchedule(){
     b.onclick = ()=>{
       const i = +b.dataset.day, cur = trainDays();
       S.settings.trainDays = cur.includes(i) ? cur.filter(x=>x!==i) : cur.concat(i).sort((a,b)=>a-b);
+      clearReschedules();   // moved dates were picked against the old day pattern
       save(); render();
     };
   });
@@ -1367,6 +1464,23 @@ function renderSchedule(){
     ? `Cycle ${S.cycle}: <b>${fmtMed(first)}</b> → <b>${fmtMed(last)}</b> · ${SESSIONS_PER_CYCLE} sessions,
        ${trainDays().length}×/week (${Math.round((last-first)/DAY_MS)+1} days)`
     : `<span style="color:var(--warn)">Pick at least one training day.</span>`;
+
+  const next = firstUnloggedIdx();
+  const nextDate = next < 0 ? null : dateForWorkout(sessionWeek(next), next % LIFTS.length);
+  const moved = rescheduledCount();
+  $('resumeTodayBtn').disabled = next < 0 || !trainDays().length;
+  $('adjustNote').innerHTML = [
+    next < 0
+      ? 'Every workout in this cycle is logged.'
+      : nextDate
+        ? `Next up: <b>${sessionLift(next).short} · week ${sessionWeek(next)}</b> on ${fmtMed(nextDate)}.`
+        : '',
+    moved ? `${plural(moved,'workout')} moved off the original schedule.
+             <button class="sm ghost" id="clearAdjustBtn" style="margin-left:6px;">Undo</button>` : '',
+  ].filter(Boolean).join('<br>');
+  if(moved) $('clearAdjustBtn').onclick = ()=>{
+    clearReschedules(); save(); render(); toast('Back on the original schedule');
+  };
 }
 
 /* ================= Actions ================= */
@@ -1456,16 +1570,31 @@ $('setBBBDeload').onchange = ()=>{
   S.settings.bbbDeload = $('setBBBDeload').value === 'yes';
   save(); render();
 };
+/* Re-laying the cycle from its start date invalidates any per-workout moves, which are
+   absolute dates picked against the old pattern. */
 $('setStart').onchange = ()=>{
   if($('setStart').value) S.settings.startDate = $('setStart').value;
+  clearReschedules();
   save(); render();
 };
 $('startTodayBtn').onclick = ()=>{
   S.settings.startDate = toISODate(today());
+  clearReschedules();
   save(); render();
   const f = dateForWorkout(1,0);
   toast(f ? `Cycle ${S.cycle} starts ${fmtShort(f)}` : 'Start date set');
 };
+$('resumeTodayBtn').onclick = ()=>{
+  const from = firstUnloggedIdx();
+  if(from < 0) return toast('Cycle is already complete');
+  if(!rescheduleFrom(from, today())) return toast('Pick at least one training day');
+  save(); render();
+  const d = dateForWorkout(sessionWeek(from), from % LIFTS.length);
+  toast(`${sessionLift(from).short} week ${sessionWeek(from)} → ${fmtShort(d)}`);
+};
+$('nudgeBackBtn').onclick  = ()=> nudgeSchedule(-1);
+$('nudgeFwdBtn').onclick   = ()=> nudgeSchedule(1);
+$('nudgeWeekBtn').onclick  = ()=> nudgeSchedule(trainDays().length || 1);
 $('setCycle').onchange = ()=>{ S.cycle = Math.max(1, parseInt($('setCycle').value,10)||1); save(); render(); };
 $('setWeek').onchange  = ()=>{ S.week = +$('setWeek').value; viewWeek = S.week; save(); render(); };
 
