@@ -26,6 +26,7 @@
     --viz-ink:#e8ecf3;       /* primary ink */
     --viz-muted:#98a2b3;     /* axis + label ink */
     --viz-deemph:#4b5364;    /* sparkline de-emphasis */
+    --viz-bw:#b9c2d0;        /* body weight — neutral, quieter than the lift hues */
     --viz-up:#0ca30c;        /* delta up = good  (4.92:1) */
     --viz-down:#e66767;      /* delta down       (5.11:1) */
     --s1:#3987e5;            /* categorical slot 1 — Press    */
@@ -231,6 +232,14 @@
       <div id="warmups"></div>
       <div id="mainsets"></div>
       <div id="bbbsets"></div>
+      <div class="row" id="bwRow" style="margin-top:14px;align-items:flex-end;">
+        <label class="fld" style="flex:1;margin-bottom:0;">
+          <span id="bwLabel">Body weight</span>
+          <input id="bwIn" type="number" inputmode="decimal" step="0.1" min="0" />
+        </label>
+        <button class="sm ghost" id="bwLastBtn" style="display:none;">Same as last</button>
+      </div>
+      <p class="note" id="bwHint"></p>
       <div class="row" style="margin-top:12px;">
         <button class="primary" id="saveBtn" style="flex:1;">Log workout</button>
         <button class="ghost sm" id="clearBtn">Undo</button>
@@ -270,6 +279,14 @@
       <div class="legend" id="legend"></div>
       <div class="chartwrap" id="e1rmChart"></div>
       <p class="note">From each week's AMRAP set (Epley). Tap a lift in the legend to show or hide it.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Body weight</h2>
+      <div class="tiles" id="bwTiles"></div>
+      <div class="chartwrap" id="bwChart" style="margin-top:10px;"></div>
+      <div id="bwRatios"></div>
+      <p class="note" id="bwNote"></p>
     </div>
 
     <div class="panel">
@@ -572,6 +589,52 @@ function setWeight(tm, pct){
   const inc = S.settings.roundTo || (U()==='lb' ? 5 : 2.5);
   return roundTo(tm * pct/100, inc);
 }
+
+/* ---- switching lb <-> kg ----
+   Every stored weight is rewritten, logged history included, so a chart is never a
+   mix of two scales. Each history entry carries the unit it was logged in, so an
+   entry already in the target unit is left alone — that also repairs a history that
+   went mixed under the old behaviour, which converted only the training maxes.
+   Conversion rounds to the loadable increment and so is lossy: flipping back and
+   forth can drift a session's numbers by an increment. */
+const LB_PER_KG = 2.20462;
+function convertUnits(to){
+  const from = S.settings.units;
+  const k    = to === 'lb' ? LB_PER_KG : 1/LB_PER_KG;
+  const inc  = to === 'lb' ? 5 : 2.5;
+  const bar  = v => v ? roundTo(v*k, inc) : v;          // weights you load on a bar
+  const est  = v => v ? Math.round(v*k) : v;            // derived estimates: whole units
+  const body = v => v ? Math.round(v*k*10)/10 : v;      // body weight: one decimal
+
+  LIFTS.forEach(l=>{
+    S.tms[l.id]    = bar(S.tms[l.id]);
+    S.oneRMs[l.id] = bar(S.oneRMs[l.id]);
+  });
+
+  S.history.forEach(h=>{
+    if((h.units || from) !== to){                       // pre-`units` entries: assume `from`
+      h.tm        = bar(h.tm);
+      h.topWeight = bar(h.topWeight);
+      h.e1rm      = est(h.e1rm);
+      h.bw        = body(h.bw);
+      if(h.bbb) h.bbb.weight = bar(h.bbb.weight);
+    }
+    h.units = to;
+  });
+
+  /* S.done holds a second copy of these numbers for the Train tab. Refresh it from the
+     entry it mirrors rather than converting again, so the two can't end up disagreeing. */
+  S.history.forEach(h=>{
+    const d = S.done[doneKey(h.cycle, h.week, h.lift)];
+    if(!d) return;
+    d.tm = h.tm; d.e1rm = h.e1rm; d.bw = h.bw;
+    if(d.bbb && h.bbb) d.bbb.weight = h.bbb.weight;
+  });
+
+  S.settings.roundTo = inc;
+  S.settings.bar     = to === 'lb' ? 45 : 20;
+  S.settings.units   = to;
+}
 // Epley
 function e1rm(weight, reps){
   if(!weight || !reps) return 0;
@@ -838,9 +901,11 @@ function renderWorkout(){
     $('warmups').innerHTML = `<p class="note">No training max set for ${lift.name}. Add one in Settings.</p>`;
     $('mainsets').innerHTML = ''; $('bbbsets').innerHTML = '';
     $('saveBtn').disabled = true; $('e1rmNote').textContent = '';
+    $('bwRow').style.display = 'none'; $('bwHint').textContent = '';
     return;
   }
   $('saveBtn').disabled = false;
+  $('bwRow').style.display = '';
 
   $('warmups').innerHTML =
     WARMUPS.map(s => setRow(setWeight(tm,s.pct), s.reps, s.pct, {warm:true})).join('')
@@ -850,6 +915,7 @@ function renderWorkout(){
     wk.sets.map(s => setRow(setWeight(tm,s.pct), s.reps, s.pct, {amrap:s.amrap})).join('');
 
   renderBBB(lift, rec);
+  renderBWField(rec);
 
   $('e1rmNote').innerHTML = e1rmNoteHTML(tm, wk, rec);
 
@@ -924,6 +990,35 @@ function renderBBB(lift, rec){
       renderBBB(lift, rec);
     };
   });
+}
+
+/* ================= Body weight =================
+   Recorded alongside a logged workout rather than in a log of its own: it lands on
+   the same timeline as the lifts, so strength and weight can be read against each
+   other. Sessions logged without a weight just leave a gap in the series. */
+function bwSeries(rows){
+  return rows.filter(h => h.bw > 0).map(h => ({ t:+new Date(h.date), v:h.bw }));
+}
+function lastBodyweight(){
+  const p = bwSeries(S.history.slice().sort((a,b)=> new Date(a.date) - new Date(b.date)));
+  return p.length ? { v:p[p.length-1].v, d:new Date(p[p.length-1].t) } : null;
+}
+
+function renderBWField(rec){
+  const inp = $('bwIn'), last = lastBodyweight();
+  const logged = rec && rec.bw ? rec.bw : null;
+  $('bwLabel').textContent = `Body weight (${U()})`;
+  inp.value = logged ? fmt(logged) : '';
+  inp.placeholder = last ? fmt(last.v) : 'optional';
+  // one tap to carry the last weight forward, since it rarely moves much day to day
+  const offer = !!last && !logged;
+  $('bwLastBtn').style.display = offer ? '' : 'none';
+  if(offer) $('bwLastBtn').onclick = ()=>{ inp.value = fmt(last.v); inp.focus(); };
+  $('bwHint').innerHTML = logged
+    ? `Logged at <b>${fmt(logged)} ${U()}</b> — edit and log again to correct it.`
+    : last
+      ? `Last was ${fmt(last.v)} ${U()} on ${fmtShort(last.d)}. Leave blank to skip.`
+      : `Optional. Log it a few times and Progress charts it against your lifts.`;
 }
 
 // reps needed at this weight to beat current best e1RM
@@ -1096,6 +1191,7 @@ function renderDash(){
   renderTiles(pts);
   renderLegend(pts);
   lineChart($('e1rmChart'), pts);
+  renderBW(rows, pts);
   volChart($('volChart'), rows);
   renderTable(rows);
 }
@@ -1118,12 +1214,17 @@ function renderHero(pts){
     ${deltaHTML(best-first, `${U()} <span class="muted">since ${fmtMed(since)}</span>`)}`;
 }
 
-/* signed delta with an arrow glyph, so direction never rides on color alone */
-function deltaHTML(d, suffix){
-  const cls   = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+/* signed delta with an arrow glyph, so direction never rides on color alone.
+   o.f = value formatter; o.neutral drops the good/bad hue for measures where
+   "up" isn't automatically an improvement (body weight). */
+function deltaHTML(d, suffix, o={}){
+  const f     = o.f || nf;
+  const cls   = o.neutral ? 'flat' : d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
   const arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→';
-  return `<div class="dl ${cls}">${arrow} ${d>0?'+':''}${nf(d)} ${suffix}</div>`;
+  return `<div class="dl ${cls}">${arrow} ${d>0?'+':''}${f(d)} ${suffix}</div>`;
 }
+const d1 = n => (Math.round(n*10)/10).toString();    // body weight: 182.4
+const d2 = n => n.toFixed(2);                        // strength-to-weight: 1.82
 
 /* ---- KPI row: one stat tile per lift ---- */
 function renderTiles(pts){
@@ -1288,6 +1389,137 @@ function lineChart(host, pts){
   });
 }
 
+/* ---- body weight: the trend, plus strength read relative to it ----
+   Body weight isn't one of the four lifts, so it doesn't take a categorical slot;
+   it's drawn in neutral gray so it reads as a different kind of measure and never
+   competes with the four lift series. */
+const BW_HUE = 'var(--viz-bw)';
+
+function renderBW(rows, pts){
+  const p = bwSeries(rows);                  // rows arrive sorted oldest first
+  if(!p.length){
+    $('bwTiles').innerHTML = '';
+    $('bwRatios').innerHTML = '';
+    $('bwChart').innerHTML = '';
+    $('bwNote').innerHTML = `Nothing weighed in this range. Type your body weight under
+      the sets on the Train tab when you log a workout and it charts here.`;
+    return;
+  }
+
+  const now = p[p.length-1].v, first = p[0].v;
+  const sparkW = Math.max(80, Math.floor((chartWidth() - 8)/2) - 24);
+
+  // "training total" mirrors the hero: best e1RM per lift, summed
+  const withData = LIFTS.filter(l => pts[l.id].length);
+  const bestTotal  = withData.reduce((s,l)=> s + Math.max(...pts[l.id].map(x=>x.v)), 0);
+  const firstTotal = withData.reduce((s,l)=> s + pts[l.id][0].v, 0);
+  const ratioNow   = bestTotal  / now;
+  const ratioThen  = firstTotal / first;
+
+  const bwTile = `<div class="tile" ${bestTotal ? '' : 'style="grid-column:1/-1"'}>
+      <div class="lbl"><span class="key" style="background:${BW_HUE}"></span>Body weight</div>
+      <div class="val">${d1(now)}<small>${U()}</small></div>
+      ${deltaHTML(now - first, `<span class="muted">vs. ${fmtShort(new Date(p[0].t))}</span>`,
+                  {f:d1, neutral:true})}
+      ${sparkline(p.slice(-12), sparkW, 26, BW_HUE)}
+    </div>`;
+
+  const ratioTile = bestTotal ? `<div class="tile">
+      <div class="lbl">Total ÷ body weight</div>
+      <div class="val">${d2(ratioNow)}<small>× BW</small></div>
+      ${p.length > 1 && firstTotal
+        ? deltaHTML(ratioNow - ratioThen, `<span class="muted">× since ${fmtShort(new Date(p[0].t))}</span>`, {f:d2})
+        : `<div class="dl muted">${withData.length} of ${LIFTS.length} lifts</div>`}
+    </div>` : '';
+
+  $('bwTiles').innerHTML = bwTile + ratioTile;
+
+  bwChart($('bwChart'), p);
+
+  // per-lift multiples of current body weight
+  $('bwRatios').innerHTML = withData.length
+    ? `<div class="lbl" style="font-size:10px;text-transform:uppercase;letter-spacing:.7px;
+         color:var(--dim);margin:14px 0 2px;">Best est. 1RM ÷ ${d1(now)} ${U()}</div>`
+      + withData.map(l=>{
+        const best = Math.max(...pts[l.id].map(x=>x.v));
+        return `<div class="kv"><span><span class="key" style="display:inline-block;width:9px;height:9px;
+            border-radius:50%;background:${cv(l.id)};margin-right:6px;"></span>${l.name}</span>
+          <span class="v">${d2(best/now)}× <span class="muted">${nf(best)} ${U()}</span></span></div>`;
+      }).join('')
+    : '';
+
+  const pctS = firstTotal ? (bestTotal/firstTotal - 1)*100 : 0;
+  const pctW = (now/first - 1)*100;
+  $('bwNote').innerHTML = (p.length > 1 && firstTotal)
+    ? `Since ${fmtMed(new Date(p[0].t))}: est. 1RM total ${pctS>0?'+':''}${d1(pctS)}%,
+       body weight ${pctW>0?'+':''}${d1(pctW)}%.
+       ${pctS > pctW ? 'Strength is outpacing weight.'
+         : pctS < pctW ? 'Weight is climbing faster than the lifts.'
+         : 'Both moving together.'}`
+    : `Multiples use your latest weight and each lift's best est. 1RM in this range.`;
+}
+
+/* single-series line: same chrome as the e1RM chart, no legend or label stack */
+function bwChart(host, p){
+  if(p.length < 2){
+    host.innerHTML = `<p class="note">One weigh-in so far — log it again next session for a trend.</p>`;
+    return;
+  }
+  const W = chartWidth();
+  const P = { t:14, r:14, b:26, l:46 }, plotH = 120;
+  const H = P.t + plotH + P.b;
+  const vs = p.map(q=>q.v);
+  const sc = niceScale(Math.min(...vs), Math.max(...vs), 3);
+  const tMin = p[0].t, tMax = p[p.length-1].t, spanT = tMax - tMin;
+  const x = t => spanT > 0 ? P.l + ((t-tMin)/spanT)*(W-P.l-P.r) : P.l + (W-P.l-P.r)/2;
+  const y = v => P.t + plotH - ((v-sc.lo)/(sc.hi-sc.lo))*plotH;
+  const baseY = P.t + plotH;
+  const md = t => { const d = new Date(t); return `${d.getMonth()+1}/${d.getDate()}`; };
+
+  let g = yAxis(sc, y, P, W, d1);
+  g += svgText(x(tMin), H-9, md(tMin), {anchor:'start'});
+  if(spanT > 0) g += svgText(x(tMax), H-9, md(tMax), {anchor:'end'});
+  g += svgLine(P.l, baseY, W-P.r, baseY, 'var(--viz-axis)');
+  g += `<path d="${p.map((q,i)=>`${i?'L':'M'}${n1(x(q.t))},${n1(y(q.v))}`).join(' ')}"
+          fill="none" stroke="${BW_HUE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  g += svgDot(x(tMax), y(vs[vs.length-1]), BW_HUE);
+  g += `<line id="bwxh" x1="0" y1="${P.t}" x2="0" y2="${baseY}" stroke="var(--viz-muted)"
+          stroke-width="1" opacity="0"/><g id="bwmark"></g>`;
+
+  const { svg, tip } = mountChart(host, W, H, 'Body weight over time', g, true);
+  const xh = svg.querySelector('#bwxh'), mark = svg.querySelector('#bwmark');
+  let cur = -1;
+
+  function showAt(i){
+    if(i < 0 || i >= p.length) return;
+    cur = i;
+    const px = x(p[i].t);
+    xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('opacity','.45');
+    mark.innerHTML = svgDot(px, y(p[i].v), BW_HUE);
+    showTip(tip, host, px,
+      new Date(p[i].t).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'}),
+      [tipRow(BW_HUE, 'Body weight', `${d1(p[i].v)} ${U()}`, false)]);
+  }
+  function hide(){ tip.classList.remove('show'); xh.setAttribute('opacity','0'); mark.innerHTML=''; }
+  function nearest(clientX){
+    const r = svg.getBoundingClientRect();
+    const px = (clientX - r.left) * (W / r.width);
+    let bi = 0, bd = Infinity;
+    p.forEach((q,i)=>{ const d = Math.abs(x(q.t)-px); if(d<bd){ bd=d; bi=i; } });
+    return bi;
+  }
+  svg.addEventListener('pointermove',  e => showAt(nearest(e.clientX)));
+  svg.addEventListener('pointerdown',  e => showAt(nearest(e.clientX)));
+  svg.addEventListener('pointerleave', hide);
+  svg.addEventListener('blur', hide);
+  svg.addEventListener('focus', ()=> showAt(cur < 0 ? p.length-1 : cur));
+  svg.addEventListener('keydown', e=>{
+    if(e.key === 'ArrowRight'){ showAt(Math.min(p.length-1, cur+1)); e.preventDefault(); }
+    if(e.key === 'ArrowLeft'){  showAt(Math.max(0, cur-1)); e.preventDefault(); }
+    if(e.key === 'Escape') hide();
+  });
+}
+
 /* ---- column chart: tonnage by cycle (single series -> slot 1, no legend) ---- */
 function volChart(host, rows){
   const byCycle = new Map();
@@ -1362,6 +1594,7 @@ function renderTable(rows){
       <td>${fmt(h.topWeight)}</td>
       <td>${h.amrapReps ?? '—'}</td>
       <td>${h.e1rm || '—'}</td>
+      <td>${h.bw ? d1(h.bw) : '—'}</td>
       <td>${h.bbb ? `${h.bbb.done}/${h.bbb.sets}<span class="muted">×${h.bbb.reps}</span>` : '—'}</td>
       <td>${nf(tonnage(h))}</td>
       <td><span class="del" data-del="${idx}" role="button" title="Delete">✕</span></td>
@@ -1369,7 +1602,7 @@ function renderTable(rows){
   }).join('');
   $('tableWrap').innerHTML = `<div style="overflow-x:auto"><table class="tbl">
     <thead><tr><th>Date</th><th style="text-align:left">Slot</th><th style="text-align:left">Lift</th>
-      <th>Top set</th><th>Reps</th><th>e1RM</th><th>BBB</th><th>Tonnage</th><th></th></tr></thead>
+      <th>Top set</th><th>Reps</th><th>e1RM</th><th>BW</th><th>BBB</th><th>Tonnage</th><th></th></tr></thead>
     <tbody>${body}</tbody></table></div>`;
   $('tableWrap').querySelectorAll('[data-del]').forEach(b=>{
     b.onclick = ()=>{
@@ -1507,12 +1740,15 @@ $('saveBtn').onclick = ()=>{
         done: (bbbDraft.key === key ? bbbDraft.done : 0) }
     : null;
 
+  const bwRaw = parseFloat($('bwIn').value);
+  const bw = bwRaw > 0 ? bwRaw : null;   // blank means "not weighed today", not zero
+
   const entry = {
     date: new Date().toISOString(), cycle:S.cycle, week:viewWeek, lift:selLift,
-    tm, topWeight, amrapReps:reps, e1rm:est, units:U(), bbb,
+    tm, topWeight, amrapReps:reps, e1rm:est, units:U(), bbb, bw,
   };
   if(existing >= 0) S.history[existing] = entry; else S.history.push(entry);
-  S.done[key] = { date:entry.date, amrapReps:reps, e1rm:est, tm, bbb };
+  S.done[key] = { date:entry.date, amrapReps:reps, e1rm:est, tm, bbb, bw };
 
   // auto-advance week when all four lifts done
   if(viewWeek === S.week && LIFTS.every(l=>S.done[doneKey(S.cycle,S.week,l.id)]) && S.week < 4){
@@ -1553,14 +1789,15 @@ $('nextCycleBtn').onclick = ()=>{
     let v = $(id).value;
     if(id==='setTmPct'||id==='setBar'||id==='setRound') v = parseFloat(v);
     if(id==='setUnits' && v !== S.settings.units){
-      const k = v==='lb' ? 2.20462 : 1/2.20462;
-      const inc = v==='lb' ? 5 : 2.5;
-      LIFTS.forEach(l=>{
-        if(S.tms[l.id])    S.tms[l.id]    = roundTo(S.tms[l.id]*k, inc);
-        if(S.oneRMs[l.id]) S.oneRMs[l.id] = roundTo(S.oneRMs[l.id]*k, inc);
-      });
-      S.settings.roundTo = inc;
-      S.settings.bar = v==='lb' ? 45 : 20;
+      const n = S.history.length;
+      if(n && !confirm(`Switch to ${v}? Your training maxes and all ${plural(n,'logged session')} `
+                     + `will be converted, rounded to the nearest ${v==='lb'?5:2.5} ${v}.`)){
+        $(id).value = S.settings.units;      // put the select back where it was
+        return;
+      }
+      convertUnits(v);
+      save(); render();
+      return toast(`Switched to ${v}`);
     }
     S.settings[map[id]] = v;
     save(); render();
