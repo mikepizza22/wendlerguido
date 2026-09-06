@@ -33,6 +33,7 @@
     --s2:#d95926;            /* categorical slot 2 — Deadlift */
     --s3:#199e70;            /* categorical slot 3 — Bench    */
     --s4:#c98500;            /* categorical slot 4 — Squat    */
+    --viz-mob:#d05a9e;       /* slot 5 — mobility: not a lift, so never a lift hue */
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
@@ -114,15 +115,52 @@
   .bbbhead{display:flex;align-items:baseline;gap:8px;margin:18px 0 8px;flex-wrap:wrap;}
   .bbbhead b{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--accent2);}
   .bbbhead span{font-size:11px;color:var(--dim);}
-  .set.bbb{padding:9px 12px;cursor:pointer;user-select:none;}
+  .set.bbb,.set.mob{padding:9px 12px;cursor:pointer;user-select:none;}
   .set.bbb .w{font-size:17px;min-width:70px;}
-  .set.bbb .chk{
+  .set.bbb .chk,.set.mob .chk{
     width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;
     display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--good);
   }
-  .set.bbb.done{border-color:rgba(61,220,151,.55);background:rgba(61,220,151,.07);}
-  .set.bbb.done .chk{border-color:var(--good);background:rgba(61,220,151,.16);}
+  .set.bbb.done,.set.mob.done{border-color:rgba(61,220,151,.55);background:rgba(61,220,151,.07);}
+  .set.bbb.done .chk,.set.mob.done .chk{border-color:var(--good);background:rgba(61,220,151,.16);}
   .set.bbb.done .w{color:var(--good);}
+
+  /* ---------- daily mobility ---------- */
+  .set.mob{align-items:flex-start;}
+  .set.mob .nm{font-size:14px;font-weight:600;line-height:1.3;}
+  .set.mob .cue{font-size:11px;color:var(--dim);margin-top:2px;}
+  .set.mob .tm{font-size:13px;font-weight:700;color:var(--dim);flex:0 0 auto;
+    font-variant-numeric:tabular-nums;padding-top:1px;}
+  .set.mob.done .nm{color:var(--good);}
+  .set.mob.now{border-color:var(--accent);background:rgba(255,138,61,.12);}
+  .set.mob.now .tm{color:var(--accent);}
+
+  /* guided timer */
+  .player{text-align:center;}
+  .player .ph{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--dim);}
+  .player .pn{font-size:19px;font-weight:700;letter-spacing:-.3px;margin:5px 0 3px;}
+  .player .pc{font-size:12px;color:var(--dim);min-height:34px;}
+  .player .pt{
+    font-size:clamp(52px,17vw,68px);font-weight:700;letter-spacing:-2.5px;line-height:1;
+    margin:6px 0 2px;font-variant-numeric:tabular-nums;
+  }
+  .player .pt.paused{color:var(--dim);}
+  .bar{height:6px;border-radius:3px;background:var(--panel2);overflow:hidden;margin:10px 0 7px;}
+  .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;}
+  .pbtns{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:7px;margin-top:11px;}
+
+  /* 5-week completion grid */
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+  .cal .cd{font-size:9px;color:var(--dim);text-align:center;letter-spacing:.4px;}
+  .mc{
+    aspect-ratio:1;border-radius:7px;border:1px solid var(--line);background:var(--panel2);
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;color:var(--dim);font-variant-numeric:tabular-nums;
+  }
+  .mc.full{background:rgba(61,220,151,.22);border-color:rgba(61,220,151,.55);color:var(--good);font-weight:700;}
+  .mc.part{background:rgba(255,204,77,.16);border-color:rgba(255,204,77,.45);color:var(--warn);}
+  .mc.today{box-shadow:0 0 0 2px var(--accent2);}
+  .mc.future{opacity:.3;}
 
   .note{font-size:12px;color:var(--dim);margin:8px 0 0;}
   .big{font-size:26px;font-weight:800;letter-spacing:-.5px;}
@@ -146,11 +184,21 @@
     display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:20;
   }
   nav button{
-    flex:1;background:none;border:none;border-radius:0;padding:12px 4px 14px;
-    color:var(--dim);font-size:11px;font-weight:600;letter-spacing:.3px;
+    flex:1;background:none;border:none;border-radius:0;padding:12px 2px 14px;
+    color:var(--dim);font-size:11px;font-weight:600;letter-spacing:.3px;position:relative;
   }
   nav button.active{color:var(--accent);}
   nav button .ic{display:block;font-size:17px;margin-bottom:2px;}
+  /* Six tabs leaves ~49px per label on a 320px phone, and "Progress" needs 51 at
+     11px. Shrink the type on the narrowest screens rather than truncate a word. */
+  @media (max-width:360px){
+    nav button{font-size:10px;letter-spacing:0;padding-left:1px;padding-right:1px;}
+  }
+  /* unmissable-but-quiet nudge that today's mobility is still open */
+  nav button .ndot{
+    position:absolute;top:9px;left:50%;margin-left:9px;
+    width:7px;height:7px;border-radius:50%;background:var(--accent);
+  }
 
   .view{display:none;} .view.active{display:block;}
 
@@ -174,6 +222,52 @@
   .tile .dl{font-size:11px;}
   .tile svg{display:block;margin-top:7px;}
   .dl.up{color:var(--viz-up);} .dl.down{color:var(--viz-down);} .dl.flat{color:var(--dim);}
+
+  /* meter — a ratio against a fixed limit; the track is a lighter step of the
+     fill's own ramp, so the state reads across the whole bar rather than just the fill */
+  .meter{height:6px;border-radius:3px;background:rgba(208,90,158,.22);overflow:hidden;margin:8px 0 1px;}
+  .meter i{display:block;height:100%;background:var(--viz-mob);border-radius:3px;}
+
+  /* ---------- food & water ----------
+     These meters show state against a target, so the fill wears status tokens — that
+     is what status colors are for. No chart palette slot is involved: the dashboard
+     plots both measures as sparklines, which need no hue of their own. */
+  .meter.kcal{height:9px;background:rgba(255,138,61,.20);margin:12px 0 0;}
+  .meter.kcal i{background:var(--accent);}
+  .meter.kcal.hit i{background:var(--good);}
+  .meter.kcal.over i{background:var(--warn);}
+  .meter.water{height:9px;background:rgba(74,163,255,.20);margin:8px 0 0;}
+  .meter.water i{background:var(--accent2);}
+  .meter.water.hit i{background:var(--good);}
+
+  .chipsw{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0;}
+  .foodchip{
+    background:var(--panel2);border:1px solid var(--line);border-radius:999px;
+    padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:7px;
+  }
+  .foodchip b{font-weight:700;}
+  .foodchip small{color:var(--dim);font-weight:600;}
+  .foodchip .x{color:var(--dim);font-size:13px;padding:0 1px;}
+
+  .ent{
+    display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;
+    background:var(--panel2);border:1px solid var(--line);margin-top:7px;
+  }
+  .ent .nm{font-size:14px;font-weight:600;}
+  .ent .kc{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .ent .x{color:var(--dim);cursor:pointer;padding:2px 4px;font-size:14px;}
+  .ent .save{font-size:11px;color:var(--accent2);cursor:pointer;font-weight:600;}
+
+  .wk7{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px 10px;align-items:center;font-size:13px;}
+  .wk7 .d{color:var(--dim);font-size:12px;}
+  .wk7 .v{font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px;}
+  .wk7 .t{height:5px;border-radius:3px;flex:1;overflow:hidden;}
+  .wk7 .t.k{background:rgba(255,138,61,.20);} .wk7 .t.w{background:rgba(74,163,255,.20);}
+  .wk7 .t i{display:block;height:100%;border-radius:3px;}
+  .wk7 .t.k i{background:var(--accent);} .wk7 .t.w i{background:var(--accent2);}
+  .wk7 .t.k.hit i,.wk7 .t.w.hit i{background:var(--good);}
+  .wk7 .hd{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);}
 
   .legend{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 10px;}
   .legend button{background:none;border:none;padding:2px 0;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink);}
@@ -254,6 +348,69 @@
     </div>
   </section>
 
+  <!-- ============ DAILY MOBILITY ============ -->
+  <section class="view" id="v-mob">
+    <div class="panel">
+      <div class="hero" id="mobHero"></div>
+      <div class="tiles" id="mobTiles" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="panel" id="mobPlayer" style="display:none;"></div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:2px;">
+        <h2 style="margin:0;">The routine · 30 min</h2>
+        <div class="spacer"></div>
+        <button class="sm ghost" id="mobCuesBtn" title="Sound & vibration between moves"></button>
+        <button class="sm primary" id="mobStartBtn"></button>
+      </div>
+      <p class="note" style="margin:0 0 4px;">Tap any move to check it off by hand, or hit start and
+        the timer walks you through it.</p>
+      <div id="mobList"></div>
+      <div class="row" style="margin-top:14px;">
+        <button class="primary" id="mobDoneBtn" style="flex:1;">Mark the whole thing done</button>
+        <button class="ghost sm" id="mobClearBtn">Clear</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Last 5 weeks</h2>
+      <div id="mobCal"></div>
+      <p class="note" id="mobCalNote"></p>
+    </div>
+  </section>
+
+  <!-- ============ FOOD & WATER ============ -->
+  <section class="view" id="v-fuel">
+    <div class="panel">
+      <div class="hero" id="kcalHero"></div>
+      <div class="meter kcal" id="kcalMeter"><i></i></div>
+      <div class="row wrap" style="margin-top:14px;align-items:flex-end;">
+        <label class="fld" style="flex:0 0 96px;margin-bottom:0;"><span>Calories</span>
+          <input id="kcalIn" type="number" inputmode="numeric" step="1" min="0" placeholder="0" /></label>
+        <label class="fld" style="flex:1;margin-bottom:0;"><span>What was it (optional)</span>
+          <input id="kcalName" type="text" placeholder="e.g. chicken and rice" /></label>
+        <button class="primary" id="kcalAdd">Add</button>
+      </div>
+      <div id="kcalFoods"></div>
+      <div id="kcalEntries"></div>
+      <p class="note" id="kcalNote"></p>
+    </div>
+
+    <div class="panel">
+      <h2>Water</h2>
+      <div id="waterHead"></div>
+      <div class="meter water" id="waterMeter"><i></i></div>
+      <div class="row wrap" id="waterBtns" style="margin-top:12px;"></div>
+      <p class="note" id="waterNote"></p>
+    </div>
+
+    <div class="panel">
+      <h2>Last 7 days</h2>
+      <div id="fuelWeek"></div>
+    </div>
+  </section>
+
   <!-- ============ PLAN ============ -->
   <section class="view" id="v-plan">
     <div class="panel">
@@ -287,6 +444,27 @@
       <div class="chartwrap" id="bwChart" style="margin-top:10px;"></div>
       <div id="bwRatios"></div>
       <p class="note" id="bwNote"></p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:8px;">
+        <h2 style="margin:0;">Daily mobility</h2><div class="spacer"></div>
+        <button class="sm ghost" id="mobTblToggle">Show weeks</button>
+      </div>
+      <div class="tiles" id="mobDashTiles"></div>
+      <div class="chartwrap" id="mobDashChart" style="margin-top:12px;"></div>
+      <div id="mobTableWrap"></div>
+      <p class="note" id="mobDashNote"></p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:8px;">
+        <h2 style="margin:0;">Food &amp; water</h2><div class="spacer"></div>
+        <button class="sm ghost" id="fuelTblToggle">Show days</button>
+      </div>
+      <div class="tiles" id="fuelDashTiles"></div>
+      <div id="fuelTableWrap"></div>
+      <p class="note" id="fuelDashNote"></p>
     </div>
 
     <div class="panel">
@@ -356,6 +534,21 @@
       </div>
     </div>
     <div class="panel">
+      <h2>Food &amp; water</h2>
+      <div class="grid2">
+        <label class="fld"><span>Daily calories</span>
+          <input id="setKcal" type="number" inputmode="numeric" step="10" min="0" placeholder="not set" /></label>
+        <label class="fld"><span>Daily water (<span id="setWaterUnit">oz</span>)</span>
+          <input id="setWater" type="number" inputmode="numeric" step="1" min="0" placeholder="not set" /></label>
+      </div>
+      <div class="row wrap">
+        <button class="sm ghost" id="kcalFromBw">Estimate calories from body weight</button>
+        <button class="sm ghost" id="waterFromBw">Estimate water</button>
+      </div>
+      <p class="note" id="fuelSetNote"></p>
+    </div>
+
+    <div class="panel">
       <h2>Schedule</h2>
       <label class="fld"><span>Cycle <span id="schedCycleNum"></span> starts</span>
         <input id="setStart" type="date" /></label>
@@ -400,6 +593,8 @@
 
 <nav>
   <button class="active" data-view="train"><span class="ic">🏋️</span>Train</button>
+  <button data-view="mob"><span class="ic">🧘</span>Mobility<span class="ndot" id="mobDot"></span></button>
+  <button data-view="fuel"><span class="ic">🍽️</span>Fuel<span class="ndot" id="fuelDot"></span></button>
   <button data-view="plan"><span class="ic">📋</span>Plan</button>
   <button data-view="hist"><span class="ic">📈</span>Progress</button>
   <button data-view="set"><span class="ic">⚙️</span>Settings</button>
@@ -432,6 +627,65 @@ const BBB_PAIR = { press:'bench', bench:'press', squat:'deadlift', deadlift:'squ
 const BBB_WAVE = [50, 60, 70];   // steps once per cycle when pct = 'wave'
 const SESSIONS_PER_CYCLE = WEEKS.length * LIFTS.length;   // 16
 
+/* ================= Daily mobility =================
+   One fixed 30-minute routine, run every day rather than programmed in cycles —
+   nothing to progress, so there's nothing to periodize. The order is the point:
+   joints first, then range under your own power, then long holds while you're warm,
+   then downregulation. Durations sum to exactly 30:00; sides are split inside a
+   move's time, so "45s a side" lives in the cue and not in a second row. */
+const MOBILITY = [
+  { block:'Joint prep', mins:5, note:'Small ranges. No stretching yet.', items:[
+    {id:'neck',      name:'Neck nods & rolls',        secs:45, cue:'Slow yes, slow no, then half-circles ear to ear. Stay inside a painless range.'},
+    {id:'shoulder',  name:'Shoulder circles',         secs:45, cue:'Arms long, the biggest circle you can draw. Half forward, half back.'},
+    {id:'catcow',    name:'Cat–cow',                  secs:60, cue:'On all fours. Exhale to round, inhale to arch, one vertebra at a time.'},
+    {id:'openbook',  name:'Thoracic open book',       secs:60, cue:'Side-lying, knees stacked. Rotate the top arm open and follow your hand with your eyes. 30s a side.'},
+    {id:'hipcircle', name:'Standing hip circles',     secs:45, cue:'Knee up, trace a slow circle with it. Keep the standing leg quiet. Swap at halfway.'},
+    {id:'ankle',     name:'Ankle circles & rocks',    secs:45, cue:'Circles both directions, then rock heel to toe. 20s an ankle.'},
+  ]},
+  { block:'Active mobility', mins:10, note:'Own the range under your own power.', items:[
+    {id:'wgs',       name:"World's greatest stretch", secs:120, cue:'Long lunge, hand inside the front foot, then reach the top arm to the ceiling. 60s a side.'},
+    {id:'ninety',    name:'90/90 hip switches',       secs:90,  cue:'Seated, both knees at 90°. Switch sides slowly without pushing off your hands.'},
+    {id:'squathold', name:'Deep squat hold & pry',    secs:90,  cue:'Heels down, elbows inside the knees. Shift side to side and pry the knees open.'},
+    {id:'cossack',   name:'Cossack squat',            secs:90,  cue:'Wide stance, sink to one side with that foot flat. Alternate slowly — no bouncing.'},
+    {id:'dogcobra',  name:'Down dog to cobra flow',   secs:90,  cue:'Hips back and heels down, then flow forward and open the chest. Follow your breath.'},
+    {id:'wallslide', name:'Wall slides',              secs:60,  cue:'Back and arms against the wall, slide overhead without letting the ribs flare.'},
+    {id:'ankledf',   name:'Kneeling ankle rocks',     secs:60,  cue:'Half-kneel and drive the knee past the toes with the heel glued down. 30s a side.'},
+  ]},
+  { block:'Static flexibility', mins:10, note:"Long holds. This is where range gets added.", items:[
+    {id:'hipflexor', name:'Kneeling hip flexor',      secs:90,  cue:'Tuck the pelvis under before you lean, then squeeze the glute on the down leg. 45s a side.'},
+    {id:'pigeon',    name:'Pigeon',                   secs:120, cue:'Front shin across, hips square, fold forward to taste. 60s a side.'},
+    {id:'fold',      name:'Seated forward fold',      secs:90,  cue:'Legs long, hinge from the hips with a soft knee. Breathe into the hamstrings.'},
+    {id:'butterfly', name:'Butterfly',                secs:60,  cue:'Soles together, hinge forward. Let gravity do it — never push the knees down.'},
+    {id:'fig4',      name:'Supine figure-4',          secs:90,  cue:'Ankle across the opposite knee, pull that knee toward your chest. 45s a side.'},
+    {id:'childside', name:"Child's pose, side reach", secs:90,  cue:'Hips to heels, then walk both hands to one side to open the lat. 45s a side.'},
+    {id:'chest',     name:'Floor chest & shoulder',   secs:60,  cue:'Face down, arm out at shoulder height, roll away from it. 30s a side.'},
+  ]},
+  { block:'Recovery', mins:5, note:'Downshift. This part is the recovery.', items:[
+    {id:'twist',     name:'Supine spinal twist',      secs:90,  cue:'Knees to one side, shoulders flat on the floor, look the other way. 45s a side.'},
+    {id:'legswall',  name:'Legs up the wall',         secs:120, cue:'Hips close to the wall, legs resting up it. Let the calves and low back drain.'},
+    {id:'breathe',   name:'Box breathing',            secs:90,  cue:'In 4, hold 4, out 4, hold 4. Nose only, belly first.'},
+  ]},
+];
+const MOB_ITEMS = MOBILITY.flatMap(b => b.items.map(i => ({...i, blockName:b.block})));
+const MOB_TOTAL = MOB_ITEMS.reduce((s,i) => s + i.secs, 0);   // 1800s
+const mobItem = id => MOB_ITEMS.find(i => i.id === id);
+
+/* ================= Food & water =================
+   Calories and water are logged locally and never leave the device — there is no
+   MyFitnessPal API to talk to (their partner API has been shut to new developers for
+   years), and this app has no backend to hold an OAuth secret or proxy CORS anyway.
+   Both are plain daily counters, which is all the tracking actually needs.
+
+   Water is logged in the unit that matches the weight unit (fl oz with lb, ml with kg)
+   and converts with it. Calories are unit-free. */
+const WATER = {
+  lb: { unit:'oz', steps:[8,16,32],       target:100,  perBw:0.5 },   // ~half your body weight in oz
+  kg: { unit:'ml', steps:[250,500,1000],  target:3000, perBw:35  },   // ~35 ml per kg
+};
+const ML_PER_OZ  = 29.5735;
+const KCAL_PER_BW = { lb:15, kg:33 };     // rough maintenance estimate, per unit of body weight
+const KCAL_BAND   = 0.10;                 // "on target" = within 10% either side
+
 const DAY_NAMES = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 const DAY_MS = 86400000;
 
@@ -444,7 +698,8 @@ const DEFAULTS = {
   version: 1,
   settings: { units:'lb', tmPct:90, roundTo:5, bar:45,
               bbb:'off', bbbLift:'same', bbbPct:'50', bbbDeload:false,
-              startDate: toISODate(today()), trainDays:[1,2,4,5] },
+              startDate: toISODate(today()), trainDays:[1,2,4,5],
+              mobCues:true, kcalTarget:0, waterTarget:0 },
   tms:    { press:0, deadlift:0, bench:0, squat:0 },
   oneRMs: { press:0, deadlift:0, bench:0, squat:0 },
   cycle: 1,
@@ -452,6 +707,14 @@ const DEFAULTS = {
   done: {},      // "cycle-week-liftId" -> { date, amrapReps, e1rm, tm }
   dates: {},     // "cycle-week-liftId" -> "YYYY-MM-DD", set only when rescheduled
   history: [],   // newest last
+  /* Mobility is a daily habit, not a session in the 5/3/1 program, so it gets its own
+     log keyed by calendar date and stays out of `history` (and out of tonnage/e1RM). */
+  mobility: { log: {} },   // "YYYY-MM-DD" -> { items:[id], secs, at }
+  /* Same shape and the same reasoning as `mobility`: a daily habit keyed by calendar
+     date, kept out of `history` so it can't reach the lift charts.
+     log: "YYYY-MM-DD" -> { entries:[{name,kcal}], wadds:[amount], wu:'oz'|'ml', at }
+     foods: quick-add list the user builds up, most recent first. */
+  nutrition: { log: {}, foods: [] },
 };
 
 /* ================= State ================= */
@@ -475,6 +738,9 @@ function load(){
       settings: Object.assign({}, DEFAULTS.settings, parsed.settings||{}),
       tms:      Object.assign({}, DEFAULTS.tms,      parsed.tms||{}),
       oneRMs:   Object.assign({}, DEFAULTS.oneRMs,   parsed.oneRMs||{}),
+      mobility: { log: (parsed.mobility && parsed.mobility.log) || {} },   // absent pre-mobility
+      nutrition: { log:   (parsed.nutrition && parsed.nutrition.log)   || {},
+                   foods: (parsed.nutrition && parsed.nutrition.foods) || [] },
     });
   }catch(e){ return structuredClone(DEFAULTS); }
 }
@@ -630,6 +896,19 @@ function convertUnits(to){
     d.tm = h.tm; d.e1rm = h.e1rm; d.bw = h.bw;
     if(d.bbb && h.bbb) d.bbb.weight = h.bbb.weight;
   });
+
+  /* Water rides along with the weight unit: fl oz with lb, ml with kg. Each day stamps
+     the unit it was logged in, exactly as history entries do, so a day already in the
+     target unit is left alone and a repeated switch can't double-convert it. Calories
+     are unit-free and never touched. */
+  const wu  = WATER[to].unit;
+  const wat = v => !v ? v : (wu === 'ml' ? Math.round(v*ML_PER_OZ/10)*10 : Math.round(v/ML_PER_OZ));
+  Object.values(S.nutrition.log).forEach(r => {
+    if(!r.wadds || !r.wadds.length) { r.wu = wu; return; }
+    if((r.wu || WATER[from].unit) !== wu) r.wadds = r.wadds.map(wat);
+    r.wu = wu;
+  });
+  if(S.settings.waterTarget) S.settings.waterTarget = wat(S.settings.waterTarget);
 
   S.settings.roundTo = inc;
   S.settings.bar     = to === 'lb' ? 45 : 20;
@@ -803,7 +1082,8 @@ const $ = id => document.getElementById(id);
 
 function render(){
   renderHeader(); renderWeekStrip(); renderChips(); renderWorkout();
-  renderCycleDone(); renderPlan(); renderDash(); renderSettings();
+  renderCycleDone(); renderPlan(); renderMobility(); renderFuel();
+  renderDash(); renderSettings();
 }
 
 function renderHeader(){
@@ -1071,6 +1351,589 @@ function renderPlan(){
   }).join('');
 }
 
+/* ================= Daily mobility =================
+   A day is either complete (every move checked) or it isn't — partial days show up in
+   the grid but don't extend the streak, so "streak" always means the same thing. */
+const mmss = s => `${Math.floor(s/60)}:${String(Math.max(0,Math.round(s))%60).padStart(2,'0')}`;
+const dur  = s => s < 60 ? `${s}s` : mmss(s);
+
+const mobKey     = d => toISODate(d || today());
+const mobRec     = iso => S.mobility.log[iso] || null;
+const mobDoneSet = iso => new Set((mobRec(iso) || {}).items || []);
+const mobComplete = iso => (mobRec(iso)?.items?.length || 0) >= MOB_ITEMS.length;
+
+/* Rewrites today's record from a set of ids, keeping the routine's own order so the
+   stored list reads the same way the list on screen does. */
+function mobWrite(ids){
+  const iso  = mobKey();
+  const keep = MOB_ITEMS.filter(i => ids.has(i.id));
+  if(!keep.length) delete S.mobility.log[iso];
+  else S.mobility.log[iso] = {
+    items: keep.map(i => i.id),
+    secs:  keep.reduce((t,i) => t + i.secs, 0),
+    at:    new Date().toISOString(),
+  };
+  save();
+}
+function mobMark(id, on){
+  const ids = mobDoneSet(mobKey());
+  on ? ids.add(id) : ids.delete(id);
+  mobWrite(ids);
+}
+function mobToggle(id){ mobMark(id, !mobDoneSet(mobKey()).has(id)); }
+
+/* Consecutive complete days. Today not being done yet doesn't break the run — the
+   streak is counted back from yesterday until you close today out. */
+function mobStreak(){
+  let d = today();
+  if(!mobComplete(mobKey(d))) d = dayBefore(d);
+  let n = 0;
+  while(mobComplete(toISODate(d))){ n++; d = dayBefore(d); }
+  return n;
+}
+function mobBestStreak(){
+  const days = Object.keys(S.mobility.log).filter(mobComplete).sort();
+  let best = 0, run = 0, prev = null;
+  days.forEach(iso => {
+    const d = parseLocalDate(iso);
+    run = (prev && Math.round((d - prev)/DAY_MS) === 1) ? run + 1 : 1;
+    prev = d;
+    best = Math.max(best, run);
+  });
+  return best;
+}
+/* complete days within the last n days, today included */
+function mobCountSince(n){
+  let c = 0, d = today();
+  for(let i=0; i<n; i++){ if(mobComplete(toISODate(d))) c++; d = dayBefore(d); }
+  return c;
+}
+
+/* ---- windowed stats, for the Progress dashboard ----
+   The window is walked day by day rather than read off the log's keys, so a day with
+   nothing logged counts as a miss instead of simply being absent. The start is always
+   clamped to the first day ever logged, so picking a 90-day range in your first week
+   reports "6 of 6 days" rather than a demoralizing "6 of 90". */
+function mobFirstDay(){
+  const days = Object.keys(S.mobility.log).sort();
+  return days.length ? parseLocalDate(days[0]) : null;
+}
+const MOB_ROLL = 7;   // trailing window for the completion-rate line
+
+function mobWindow(from, to){
+  const empty = { days:0, full:0, part:0, secs:0, best:0, rate:0, series:[], weeks:[], start:null };
+  const first = mobFirstDay();
+  if(!first) return empty;
+  const end   = to || today();
+  const start = (from && +from > +first)
+    ? new Date(from.getFullYear(), from.getMonth(), from.getDate()) : first;
+  if(+start > +end) return empty;
+
+  const out = { ...empty, start };
+  const wk = new Map();
+  let run = 0;
+
+  /* Seed the trailing window with the days immediately before the window opens, where
+     they exist. Otherwise the left edge of the line is an artefact of where the range
+     happens to start — the first point would be a one-day "rate" even when the six
+     days before it are known. Seeded days move the line only; they are not counted
+     in days/full/part/secs or bucketed into a week. */
+  const hits = [];
+  for(let k = MOB_ROLL - 1; k >= 1; k--){
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() - k);
+    if(+d >= +first) hits.push(mobComplete(toISODate(d)) ? 1 : 0);
+  }
+
+  for(let d = new Date(start); +d <= +end; d = dayAfter(d)){
+    const iso = toISODate(d), rec = mobRec(iso), done = mobComplete(iso);
+    out.days++;
+    if(done){ out.full++; run++; out.best = Math.max(out.best, run); }
+    else { run = 0; if(rec) out.part++; }
+    out.secs += rec ? (rec.secs || 0) : 0;
+
+    /* Trailing completion rate. Before there are MOB_ROLL days of history the
+       denominator is however many days exist, so the line starts at day one
+       instead of leaving a blank week at the left edge. */
+    hits.push(done ? 1 : 0);
+    const w = hits.slice(-MOB_ROLL);
+    const hit = w.reduce((a,b)=>a+b, 0);
+    out.series.push({ t:+d, v: hit/w.length*100, hit, roll:w.length });
+
+    const wEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + (6 - d.getDay()));
+    const key = toISODate(wEnd);
+    const b = wk.get(key) || { t:+wEnd, full:0, part:0, days:0, secs:0 };
+    b.days++;
+    if(done) b.full++; else if(rec) b.part++;
+    b.secs += rec ? (rec.secs || 0) : 0;
+    wk.set(key, b);
+  }
+  out.weeks = [...wk.values()].sort((a,b) => a.t - b.t);
+  out.rate  = out.days ? out.full/out.days*100 : 0;
+  return out;
+}
+/* the equally long window ending the day before this one, for a like-for-like delta */
+function mobPrevWindow(from){
+  if(!from) return null;
+  const len = Math.round((today() - from)/DAY_MS) + 1;
+  const to  = dayBefore(from);
+  return mobWindow(new Date(to.getFullYear(), to.getMonth(), to.getDate() - (len-1)), to);
+}
+
+function renderMobility(){
+  renderMobHero();
+  renderMobList();
+  renderMobPlayer();
+  renderMobCal();
+  renderMobBadge();
+}
+
+function renderMobBadge(){
+  $('mobDot').style.display = mobComplete(mobKey()) ? 'none' : 'block';
+}
+
+function renderMobHero(){
+  const ids  = mobDoneSet(mobKey());
+  const secs = MOB_ITEMS.filter(i => ids.has(i.id)).reduce((t,i) => t + i.secs, 0);
+  const streak = mobStreak(), all = mobComplete(mobKey());
+
+  $('mobHero').innerHTML = `
+    <div class="lbl">Mobility streak</div>
+    <div class="val">${streak}<small>${streak === 1 ? 'day' : 'days'}</small></div>
+    <div class="dl ${all ? 'up' : ids.size ? 'flat' : 'muted'}">${
+      all      ? `✔ Done today — ${fmtLong(today())}`
+      : ids.size ? `↻ ${ids.size} of ${MOB_ITEMS.length} moves · ${mmss(secs)} of ${mmss(MOB_TOTAL)} today`
+                 : `Nothing logged yet today — ${fmtLong(today())}`}</div>`;
+
+  const best = mobBestStreak(), l30 = mobCountSince(30);
+  $('mobTiles').innerHTML = `
+    <div class="tile">
+      <div class="lbl">Best streak</div>
+      <div class="val">${best}<small>${best === 1 ? 'day' : 'days'}</small></div>
+      <div class="dl muted">${best && streak >= best ? 'at your best now' : best ? `${best - streak} to beat it` : 'finish a day to start one'}</div>
+    </div>
+    <div class="tile">
+      <div class="lbl">Last 30 days</div>
+      <div class="val">${l30}<small>/ 30</small></div>
+      <div class="dl muted">${Math.round(l30/30*100)}% of days</div>
+    </div>`;
+}
+
+function renderMobList(){
+  const ids = mobDoneSet(mobKey());
+  const cur = mob.running ? MOB_ITEMS[mob.idx].id : null;
+
+  $('mobStartBtn').textContent = mob.running ? 'Running…'
+    : ids.size >= MOB_ITEMS.length ? 'Run it again'
+    : ids.size ? 'Continue' : 'Start';
+  $('mobStartBtn').disabled = mob.running;
+  $('mobCuesBtn').textContent = S.settings.mobCues ? '🔔' : '🔇';
+
+  $('mobList').innerHTML = MOBILITY.map(b => {
+    const n = b.items.filter(i => ids.has(i.id)).length;
+    return `<div class="bbbhead">
+        <b>${b.block}</b><span>${b.mins} min · ${b.note}</span>
+        <div class="spacer"></div><span>${n}/${b.items.length}</span>
+      </div>`
+      + b.items.map(i => {
+        const on = ids.has(i.id);
+        return `<div class="set mob ${on?'done':''} ${i.id===cur?'now':''}" data-mob="${i.id}"
+             role="button" aria-pressed="${on}">
+          <div class="chk">${on?'✓':''}</div>
+          <div><div class="nm">${i.name}</div><div class="cue">${i.cue}</div></div>
+          <div class="spacer"></div>
+          <div class="tm">${dur(i.secs)}</div>
+        </div>`;
+      }).join('');
+  }).join('');
+
+  $('mobList').querySelectorAll('[data-mob]').forEach(el => {
+    el.onclick = () => { mobToggle(el.dataset.mob); renderMobility(); };
+  });
+}
+
+function renderMobCal(){
+  const t = today();
+  const end   = new Date(t.getFullYear(), t.getMonth(), t.getDate() + (6 - t.getDay()));  // Saturday
+  const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - 34);
+  let cells = DAY_NAMES.map(d => `<div class="cd">${d}</div>`).join('');
+  let full = 0, part = 0;
+
+  for(let i=0; i<35; i++){
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const iso = toISODate(d), rec = mobRec(iso), done = mobComplete(iso);
+    if(done) full++; else if(rec) part++;
+    const cls = [
+      +d > +t ? 'future' : '',
+      done ? 'full' : rec ? 'part' : '',
+      isToday(d) ? 'today' : '',
+    ].filter(Boolean).join(' ');
+    const label = `${fmtMed(d)} — ${done ? 'complete'
+      : rec ? `${rec.items.length} of ${MOB_ITEMS.length} moves` : 'nothing logged'}`;
+    cells += `<div class="mc ${cls}" title="${label}" aria-label="${label}">${d.getDate()}</div>`;
+  }
+  $('mobCal').innerHTML = `<div class="cal">${cells}</div>`;
+  $('mobCalNote').innerHTML = `<span class="up">Green</span> = all ${MOB_ITEMS.length} moves ·
+    <span style="color:var(--warn)">amber</span> = partial. ${plural(full,'full day')} here${
+    part ? `, ${plural(part,'partial')}` : ''}.`;
+}
+
+/* ---- guided timer ----
+   Each move counts down from a deadline rather than a tick count, so a backgrounded
+   tab, a locked screen or a slow frame can't make the routine drift. Reaching zero
+   checks the move off; skipping past it deliberately does not. */
+let mob = { running:false, paused:false, idx:0, left:0, endAt:0, timer:null, lock:null };
+
+function mobNextIdx(){
+  const ids = mobDoneSet(mobKey());
+  const i = MOB_ITEMS.findIndex(it => !ids.has(it.id));
+  return i < 0 ? 0 : i;                       // all done: start over from the top
+}
+function mobSetItem(i){
+  mob.idx = i;
+  mob.left = MOB_ITEMS[i].secs;
+  mob.endAt = Date.now() + mob.left*1000;
+}
+function mobStart(){
+  audioWarm();                                 // iOS only unlocks audio inside a gesture
+  mob.running = true; mob.paused = false;
+  mobSetItem(mobNextIdx());
+  if(!mob.timer) mob.timer = setInterval(mobTick, 200);
+  mobWakeLock(true);
+  renderMobility();
+  $('mobPlayer').scrollIntoView({block:'center', behavior:'smooth'});
+}
+function mobStop(){
+  mob.running = false; mob.paused = false;
+  clearInterval(mob.timer); mob.timer = null;
+  mobWakeLock(false);
+}
+function mobPause(){
+  mob.paused = !mob.paused;
+  if(!mob.paused) mob.endAt = Date.now() + mob.left*1000;   // resume where it stopped
+  mobWakeLock(!mob.paused);
+  renderMobPlayer();
+}
+function mobTick(){
+  if(!mob.running || mob.paused) return;
+  mob.left = Math.max(0, Math.ceil((mob.endAt - Date.now())/1000));
+  if(mob.left <= 0) return mobItemUp();
+  mobPaint();
+}
+function mobItemUp(){
+  mobMark(MOB_ITEMS[mob.idx].id, true);
+  if(mob.idx >= MOB_ITEMS.length - 1){
+    mobStop(); renderMobility();
+    cue(3, [90,70,90,70,140]);
+    return toast(`Mobility done ✔ ${mobStreak()}-day streak`);
+  }
+  mobSetItem(mob.idx + 1);
+  cue(1, 140);
+  renderMobility();
+}
+/* n = -1 back a move, +1 skip ahead without credit */
+function mobJump(n){
+  const i = mob.idx + n;
+  if(i < 0) return;
+  if(i >= MOB_ITEMS.length){ mobStop(); renderMobility(); return toast('End of the routine'); }
+  mobSetItem(i);
+  renderMobility();
+}
+
+function renderMobPlayer(){
+  const host = $('mobPlayer');
+  if(!mob.running){ host.style.display = 'none'; host.innerHTML = ''; return; }
+  host.style.display = 'block';
+
+  const it = MOB_ITEMS[mob.idx], nx = MOB_ITEMS[mob.idx+1];
+  host.innerHTML = `<div class="player">
+    <div class="ph">${it.blockName} · move ${mob.idx+1} of ${MOB_ITEMS.length}</div>
+    <div class="pn">${it.name}</div>
+    <div class="pc">${it.cue}</div>
+    <div class="pt ${mob.paused?'paused':''}" id="mobTime" role="timer" aria-live="off">${mmss(mob.left)}</div>
+    <div class="bar"><i id="mobBar" style="width:0%"></i></div>
+    <div class="ph" id="mobLeft"></div>
+    <div class="pbtns">
+      <button class="sm ghost" id="mobPrev" ${mob.idx?'':'disabled'}>Back</button>
+      <button class="sm primary" id="mobPauseBtn">${mob.paused?'Resume':'Pause'}</button>
+      <button class="sm ghost" id="mobSkip">Skip</button>
+    </div>
+    <button class="sm ghost" id="mobEnd" style="width:100%;margin-top:7px;">End session</button>
+    <div class="ph" style="margin-top:9px;">${nx
+      ? `Next — ${nx.name} · ${dur(nx.secs)}` : 'Last move of the routine'}</div>
+  </div>`;
+
+  $('mobPrev').onclick     = () => mobJump(-1);
+  $('mobSkip').onclick     = () => mobJump(1);
+  $('mobPauseBtn').onclick = mobPause;
+  $('mobEnd').onclick      = () => { mobStop(); renderMobility(); };
+  mobPaint();
+}
+/* the per-tick update: text only, so the player isn't rebuilt four times a second */
+function mobPaint(){
+  const t = $('mobTime');
+  if(!t || !mob.running) return;
+  t.textContent = mmss(mob.left);
+  const it = MOB_ITEMS[mob.idx];
+  $('mobBar').style.width = ((1 - mob.left/it.secs) * 100).toFixed(1) + '%';
+  const rem = mob.left + MOB_ITEMS.slice(mob.idx+1).reduce((s,i) => s + i.secs, 0);
+  $('mobLeft').textContent = `${mmss(rem)} left in the routine`;
+}
+
+/* A move ending while you're mid-stretch is easy to miss on screen, so it's announced
+   with a tone and a buzz. Either can be absent (muted device, no vibration motor). */
+let actx = null;
+function audioWarm(){
+  if(!S.settings.mobCues) return;
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if(actx.state === 'suspended') actx.resume();
+  }catch(e){ actx = null; }
+}
+function cue(tones, pattern){
+  if(!S.settings.mobCues) return;
+  try{ navigator.vibrate?.(pattern); }catch(e){}
+  if(!actx) return;
+  try{
+    for(let i=0; i<tones; i++){
+      const t0 = actx.currentTime + i*0.17;
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine';
+      o.frequency.value = i === tones-1 ? 880 : 660;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(0.18, t0 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.14);
+      o.connect(g).connect(actx.destination);
+      o.start(t0); o.stop(t0 + 0.15);
+    }
+  }catch(e){}
+}
+/* 30 minutes on the floor is 30 minutes of not touching the screen */
+async function mobWakeLock(on){
+  try{
+    if(on && !mob.lock && navigator.wakeLock)
+      mob.lock = await navigator.wakeLock.request('screen');
+    else if(!on && mob.lock){ mob.lock.release(); mob.lock = null; }
+  }catch(e){ mob.lock = null; }
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden || !mob.running || mob.paused) return;
+  mob.lock = null;                 // the browser drops the lock when the tab hides
+  mobWakeLock(true);
+});
+
+$('mobStartBtn').onclick = mobStart;
+$('mobCuesBtn').onclick  = () => {
+  S.settings.mobCues = !S.settings.mobCues;
+  save(); renderMobList();
+  if(S.settings.mobCues){ audioWarm(); cue(1, 90); }
+  toast(S.settings.mobCues ? 'Cues on' : 'Cues off');
+};
+$('mobDoneBtn').onclick = ()=>{
+  mobWrite(new Set(MOB_ITEMS.map(i => i.id)));
+  if(mob.running) mobStop();
+  renderMobility();
+  toast(`Mobility done ✔ ${mobStreak()}-day streak`);
+};
+$('mobClearBtn').onclick = ()=>{
+  if(!mobRec(mobKey())) return toast('Nothing logged today');
+  mobWrite(new Set());
+  if(mob.running) mobStop();
+  renderMobility();
+  toast('Cleared today');
+};
+
+/* ================= Food & water =================
+   One record per calendar day. Calories are a list of entries so a mis-typed one can
+   be removed individually; water is a list of the amounts added so "undo" takes back
+   exactly the last pour rather than guessing a step size. Both totals are derived from
+   those lists, so a total can never drift out of step with what it is a total of. */
+const wcfg      = () => WATER[U()];
+const fuelKey   = d => toISODate(d || today());
+const fuelRec   = iso => S.nutrition.log[iso] || null;
+const dayKcal   = iso => (fuelRec(iso)?.entries || []).reduce((t,e) => t + e.kcal, 0);
+const dayWater  = iso => (fuelRec(iso)?.wadds   || []).reduce((t,v) => t + v, 0);
+const kcalTarget  = () => S.settings.kcalTarget  || 0;
+const waterTarget = () => S.settings.waterTarget || 0;
+const kcalOnTarget  = iso => { const t = kcalTarget(), v = dayKcal(iso);
+  return !!t && !!v && Math.abs(v - t) <= t*KCAL_BAND; };
+const waterHit = iso => { const t = waterTarget(); return !!t && dayWater(iso) >= t; };
+
+function fuelDay(iso){
+  return S.nutrition.log[iso]
+    || (S.nutrition.log[iso] = { entries:[], wadds:[], wu:wcfg().unit, at:null });
+}
+/* drops a day that has been emptied back out, so untouched days leave no record */
+function fuelCommit(iso){
+  const r = S.nutrition.log[iso];
+  if(r && !r.entries.length && !r.wadds.length) delete S.nutrition.log[iso];
+  else if(r) r.at = new Date().toISOString();
+  save();
+}
+function addKcal(kcal, name){
+  const iso = fuelKey();
+  fuelDay(iso).entries.push({ name: name || '', kcal });
+  fuelCommit(iso);
+}
+function addWater(amount){
+  const iso = fuelKey();
+  const d = fuelDay(iso);
+  d.wadds.push(amount); d.wu = wcfg().unit;
+  fuelCommit(iso);
+}
+/* keeps the most recent 12, newest first, matched on name so re-adding just moves it up */
+function saveFood(name, kcal){
+  if(!name) return;
+  const foods = S.nutrition.foods.filter(f => f.name.toLowerCase() !== name.toLowerCase());
+  foods.unshift({ name, kcal });
+  S.nutrition.foods = foods.slice(0, 12);
+  save();
+}
+
+function renderFuel(){
+  renderKcal();
+  renderWater();
+  renderFuelWeek();
+  renderFuelBadge();
+}
+/* the nudge is for water only: a calorie target can legitimately be met by not eating
+   more, but water left unlogged is almost always water not drunk */
+function renderFuelBadge(){
+  const t = waterTarget();
+  $('fuelDot').style.display = (t && !waterHit(fuelKey())) ? 'block' : 'none';
+}
+
+function renderKcal(){
+  const iso = fuelKey(), kcal = dayKcal(iso), t = kcalTarget();
+  const rec = fuelRec(iso), entries = rec ? rec.entries : [];
+
+  $('kcalHero').innerHTML = `
+    <div class="lbl">Calories today</div>
+    <div class="val">${nf(kcal)}${t ? `<small>/ ${nf(t)}</small>` : '<small>kcal</small>'}</div>
+    <div class="dl ${!t ? 'muted' : kcalOnTarget(iso) ? 'up' : 'flat'}">${
+      !t   ? 'No target set — Settings has one, or just log and watch the trend.'
+      : kcal > t ? `${nf(kcal - t)} over target`
+      : `${nf(t - kcal)} left today`}</div>`;
+
+  const m = $('kcalMeter');
+  m.style.display = t ? '' : 'none';
+  if(t){
+    m.className = 'meter kcal' + (kcal > t*(1+KCAL_BAND) ? ' over' : kcalOnTarget(iso) ? ' hit' : '');
+    m.firstElementChild.style.width = Math.min(100, kcal/t*100).toFixed(1) + '%';
+    m.setAttribute('role','img');
+    m.setAttribute('aria-label', `${nf(kcal)} of ${nf(t)} calories`);
+  }
+
+  $('kcalFoods').innerHTML = S.nutrition.foods.length
+    ? `<div class="chipsw">` + S.nutrition.foods.map((f,i) =>
+        `<span class="foodchip" data-food="${i}"><b>${esc(f.name)}</b>
+           <small>${nf(f.kcal)}</small><span class="x" data-delfood="${i}" role="button"
+           aria-label="Forget ${esc(f.name)}">✕</span></span>`).join('') + `</div>`
+    : '';
+
+  $('kcalEntries').innerHTML = entries.length
+    ? entries.map((e,i) => `<div class="ent">
+        <div>
+          <div class="nm">${e.name ? esc(e.name) : 'Quick add'}</div>
+          ${e.name && !S.nutrition.foods.some(f => f.name.toLowerCase() === e.name.toLowerCase())
+            ? `<span class="save" data-savefood="${i}" role="button">+ save for later</span>` : ''}
+        </div>
+        <div class="spacer"></div>
+        <div class="kc">${nf(e.kcal)}</div>
+        <span class="x" data-delent="${i}" role="button" aria-label="Remove">✕</span>
+      </div>`).join('')
+    : `<p class="note">Nothing logged today.</p>`;
+
+  $('kcalNote').innerHTML = S.nutrition.foods.length
+    ? `Tap a saved food to add it again. Everything stays on this device.`
+    : `Log something with a name and you can save it as a one-tap button.`;
+
+  $('kcalFoods').querySelectorAll('[data-food]').forEach(el => {
+    el.onclick = ev => {
+      if(ev.target.dataset.delfood != null) return;      // the ✕ has its own job
+      const f = S.nutrition.foods[+el.dataset.food];
+      addKcal(f.kcal, f.name); renderFuel(); renderDash();
+      toast(`+${nf(f.kcal)} ${f.name}`);
+    };
+  });
+  $('kcalFoods').querySelectorAll('[data-delfood]').forEach(el => {
+    el.onclick = ev => {
+      ev.stopPropagation();
+      S.nutrition.foods.splice(+el.dataset.delfood, 1);
+      save(); renderFuel();
+    };
+  });
+  $('kcalEntries').querySelectorAll('[data-delent]').forEach(el => {
+    el.onclick = () => {
+      const r = fuelRec(iso); if(!r) return;
+      r.entries.splice(+el.dataset.delent, 1);
+      fuelCommit(iso); renderFuel(); renderDash();
+    };
+  });
+  $('kcalEntries').querySelectorAll('[data-savefood]').forEach(el => {
+    el.onclick = () => {
+      const e = entries[+el.dataset.savefood];
+      saveFood(e.name, e.kcal); renderFuel(); toast(`Saved ${e.name}`);
+    };
+  });
+}
+
+function renderWater(){
+  const iso = fuelKey(), cfg = wcfg();
+  const v = dayWater(iso), t = waterTarget();
+
+  $('waterHead').innerHTML = `
+    <div class="big">${nf(v)}<span class="muted" style="font-size:14px;font-weight:600;">
+      ${t ? ` / ${nf(t)} ${cfg.unit}` : ` ${cfg.unit}`}</span></div>
+    <div class="dl ${!t ? 'muted' : waterHit(iso) ? 'up' : 'flat'}" style="font-size:13px;">${
+      !t ? 'No target set.' : waterHit(iso) ? '✔ Target met' : `${nf(t - v)} ${cfg.unit} to go`}</div>`;
+
+  const m = $('waterMeter');
+  m.style.display = t ? '' : 'none';
+  if(t){
+    m.className = 'meter water' + (waterHit(iso) ? ' hit' : '');
+    m.firstElementChild.style.width = Math.min(100, v/t*100).toFixed(1) + '%';
+    m.setAttribute('role','img');
+    m.setAttribute('aria-label', `${nf(v)} of ${nf(t)} ${cfg.unit} of water`);
+  }
+
+  $('waterBtns').innerHTML = cfg.steps.map(n =>
+      `<button class="sm" data-water="${n}">+${n}</button>`).join('')
+    + `<div class="spacer"></div>
+       <button class="sm ghost" id="waterUndo" ${(fuelRec(iso)?.wadds || []).length ? '' : 'disabled'}>Undo</button>`;
+
+  $('waterBtns').querySelectorAll('[data-water]').forEach(b => {
+    b.onclick = () => { addWater(+b.dataset.water); renderFuel(); renderDash(); };
+  });
+  $('waterUndo').onclick = () => {
+    const r = fuelRec(iso); if(!r || !r.wadds.length) return;
+    const back = r.wadds.pop();
+    fuelCommit(iso); renderFuel(); renderDash();
+    toast(`−${nf(back)} ${cfg.unit}`);
+  };
+
+  $('waterNote').innerHTML = `One tap per glass or bottle. ${
+    t ? `Target is ${nf(t)} ${cfg.unit} a day` : `Set a daily target in Settings`} —
+    it converts if you switch between lb and kg.`;
+}
+
+/* the last seven days, oldest first, as two target-relative tracks */
+function renderFuelWeek(){
+  const kt = kcalTarget(), wt = waterTarget(), cfg = wcfg();
+  let rows = `<div class="wk7"><span></span><span class="hd">Calories</span><span class="hd">Water</span>`;
+  for(let i=6; i>=0; i--){
+    const d = new Date(today().getFullYear(), today().getMonth(), today().getDate() - i);
+    const iso = toISODate(d);
+    const k = dayKcal(iso), w = dayWater(iso);
+    const bar = (val, tgt, cls, hit) => tgt
+      ? `<div class="t ${cls}${hit?' hit':''}"><i style="width:${Math.min(100, val/tgt*100).toFixed(1)}%"></i></div>`
+      : '';
+    rows += `<span class="d">${i === 0 ? 'Today' : fmtShort(d)}</span>
+      <span class="v">${k ? nf(k) : '—'}${bar(k, kt, 'k', kcalOnTarget(iso))}</span>
+      <span class="v">${w ? nf(w) : '—'}${bar(w, wt, 'w', waterHit(iso))}</span>`;
+  }
+  $('fuelWeek').innerHTML = rows + `</div>`;
+}
+
 /* ================= Progress dashboard =================
    Palette: categorical slots 1–4 (dark steps) validated with the skill's
    validator against this app's surface #1b1f27 — lightness band, chroma floor,
@@ -1192,6 +2055,8 @@ function renderDash(){
   renderLegend(pts);
   lineChart($('e1rmChart'), pts);
   renderBW(rows, pts);
+  renderMobDash();
+  renderFuelDash();
   volChart($('volChart'), rows);
   renderTable(rows);
 }
@@ -1459,35 +2324,35 @@ function renderBW(rows, pts){
     : `Multiples use your latest weight and each lift's best est. 1RM in this range.`;
 }
 
-/* single-series line: same chrome as the e1RM chart, no legend or label stack */
-function bwChart(host, p){
-  if(p.length < 2){
-    host.innerHTML = `<p class="note">One weigh-in so far — log it again next session for a trend.</p>`;
-    return;
-  }
+/* single-series line: the chrome and hover layer shared by the body-weight and
+   mobility charts. Same look as the e1RM chart, minus the legend and label stack.
+   o = { hue, name, scale?, fmtY, fmtV, label, empty } — scale defaults to a nice
+   scale fitted to the data, so a fixed domain (0–100%) can be passed in instead. */
+function lineChart1(host, p, o){
+  if(p.length < 2){ host.innerHTML = `<p class="note">${o.empty}</p>`; return; }
   const W = chartWidth();
   const P = { t:14, r:14, b:26, l:46 }, plotH = 120;
   const H = P.t + plotH + P.b;
   const vs = p.map(q=>q.v);
-  const sc = niceScale(Math.min(...vs), Math.max(...vs), 3);
+  const sc = o.scale || niceScale(Math.min(...vs), Math.max(...vs), 3);
   const tMin = p[0].t, tMax = p[p.length-1].t, spanT = tMax - tMin;
   const x = t => spanT > 0 ? P.l + ((t-tMin)/spanT)*(W-P.l-P.r) : P.l + (W-P.l-P.r)/2;
   const y = v => P.t + plotH - ((v-sc.lo)/(sc.hi-sc.lo))*plotH;
   const baseY = P.t + plotH;
   const md = t => { const d = new Date(t); return `${d.getMonth()+1}/${d.getDate()}`; };
 
-  let g = yAxis(sc, y, P, W, d1);
+  let g = yAxis(sc, y, P, W, o.fmtY);
   g += svgText(x(tMin), H-9, md(tMin), {anchor:'start'});
   if(spanT > 0) g += svgText(x(tMax), H-9, md(tMax), {anchor:'end'});
   g += svgLine(P.l, baseY, W-P.r, baseY, 'var(--viz-axis)');
   g += `<path d="${p.map((q,i)=>`${i?'L':'M'}${n1(x(q.t))},${n1(y(q.v))}`).join(' ')}"
-          fill="none" stroke="${BW_HUE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-  g += svgDot(x(tMax), y(vs[vs.length-1]), BW_HUE);
-  g += `<line id="bwxh" x1="0" y1="${P.t}" x2="0" y2="${baseY}" stroke="var(--viz-muted)"
-          stroke-width="1" opacity="0"/><g id="bwmark"></g>`;
+          fill="none" stroke="${o.hue}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  g += svgDot(x(tMax), y(vs[vs.length-1]), o.hue);
+  g += `<line class="xh1" x1="0" y1="${P.t}" x2="0" y2="${baseY}" stroke="var(--viz-muted)"
+          stroke-width="1" opacity="0"/><g class="xhm1"></g>`;
 
-  const { svg, tip } = mountChart(host, W, H, 'Body weight over time', g, true);
-  const xh = svg.querySelector('#bwxh'), mark = svg.querySelector('#bwmark');
+  const { svg, tip } = mountChart(host, W, H, o.label, g, true);
+  const xh = svg.querySelector('.xh1'), mark = svg.querySelector('.xhm1');
   let cur = -1;
 
   function showAt(i){
@@ -1495,10 +2360,10 @@ function bwChart(host, p){
     cur = i;
     const px = x(p[i].t);
     xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('opacity','.45');
-    mark.innerHTML = svgDot(px, y(p[i].v), BW_HUE);
+    mark.innerHTML = svgDot(px, y(p[i].v), o.hue);
     showTip(tip, host, px,
       new Date(p[i].t).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'}),
-      [tipRow(BW_HUE, 'Body weight', `${d1(p[i].v)} ${U()}`, false)]);
+      [tipRow(o.hue, o.name, o.fmtV(p[i]), false)]);
   }
   function hide(){ tip.classList.remove('show'); xh.setAttribute('opacity','0'); mark.innerHTML=''; }
   function nearest(clientX){
@@ -1519,6 +2384,235 @@ function bwChart(host, p){
     if(e.key === 'Escape') hide();
   });
 }
+
+const bwChart = (host, p) => lineChart1(host, p, {
+  hue: BW_HUE, name: 'Body weight',
+  fmtY: d1, fmtV: q => `${d1(q.v)} ${U()}`,
+  label: 'Body weight over time',
+  empty: 'One weigh-in so far — log it again next session for a trend.',
+});
+
+/* ---- daily mobility: consistency, not load ----
+   Mobility gets its own hue rather than a lift's. It is neither a lift nor body
+   weight, and a single magenta line can't be mistaken for the Press line sitting in
+   the chart above it. Slot 5 (#d05a9e) was checked with the skill's validator against
+   this surface: lightness band, chroma floor and 3:1 contrast all pass, and adding it
+   leaves the adjacent-pair CVD gate exactly where it was (worst pair is still
+   gold/green, 8.4 protan). It is far from slot 3 green in normal vision but close
+   under deutan, so the two must never share a plot — which they don't.
+
+   The measure is a trailing-7-day completion rate: a daily done/not-done series is
+   all-or-nothing and unreadable plotted raw, and the rolling rate is what actually
+   answers "am I holding the habit". */
+const MOB_HUE = 'var(--viz-mob)';
+const pc = n => Math.round(n) + '%';
+let showMobTable = false;
+
+function renderMobDash(){
+  /* rangeFrom() is inclusive of its boundary day, which would make the "30 d" chip
+     report a 31-day denominator. Mobility counts days, so it starts a day later and
+     the window is exactly as long as the chip says. */
+  const from = rangeFrom();
+  const start = from ? dayAfter(from) : null;
+  const w = mobWindow(start);
+
+  if(!w.days){
+    $('mobDashTiles').innerHTML = '';
+    $('mobDashChart').innerHTML = '';
+    $('mobTableWrap').innerHTML = '';
+    $('mobTblToggle').style.display = 'none';
+    $('mobDashNote').innerHTML = mobFirstDay()
+      ? `No mobility logged in this range.`
+      : `Nothing logged yet. The 30-minute routine lives on the Mobility tab —
+         finish a day and its consistency charts here.`;
+    return;
+  }
+  $('mobTblToggle').style.display = '';
+
+  const prev = mobPrevWindow(start);
+  const cmp  = prev && prev.days >= 7 ? prev : null;   // too short a window says nothing
+
+  $('mobDashTiles').innerHTML = `
+    <div class="tile">
+      <div class="lbl">Consistency</div>
+      <div class="val">${pc(w.rate)}</div>
+      ${cmp
+        ? deltaHTML(w.rate - cmp.rate, `pts <span class="muted">vs. prior ${plural(cmp.days,'day')}</span>`, {f:d1})
+        : `<div class="dl muted">since ${fmtMed(w.start)}</div>`}
+      <div class="meter" role="img" aria-label="${pc(w.rate)} of days complete">
+        <i style="width:${w.rate.toFixed(1)}%"></i></div>
+    </div>
+    <div class="tile">
+      <div class="lbl">Days complete</div>
+      <div class="val">${w.full}<small>/ ${w.days}</small></div>
+      <div class="dl muted">${w.part ? plural(w.part,'partial day') : 'no partial days'}</div>
+    </div>
+    <div class="tile">
+      <div class="lbl">Best run</div>
+      <div class="val">${w.best}<small>${w.best === 1 ? 'day' : 'days'}</small></div>
+      <div class="dl muted">longest streak in range</div>
+    </div>
+    <div class="tile">
+      <div class="lbl">Time on the floor</div>
+      <div class="val">${w.secs >= 3600 ? d1(w.secs/3600) : Math.round(w.secs/60)}<small>${w.secs >= 3600 ? 'h' : 'min'}</small></div>
+      <div class="dl muted">avg ${Math.round(w.secs/60/w.days)} min/day</div>
+    </div>`;
+
+  /* A rolling rate is only a rolling rate once its window is full: the first days of
+     all history would otherwise spike off a one-day "rate". Ranged views get their
+     window seeded from before the range, so this only ever trims the very start of
+     history — and where the window can't be filled at all (a days-old log) it plots
+     what exists rather than nothing. */
+  const fullWin = w.series.filter(q => q.roll === MOB_ROLL);
+  const series  = fullWin.length >= 2 ? fullWin : w.series;
+
+  lineChart1($('mobDashChart'), series, {
+    hue: MOB_HUE, name: `${MOB_ROLL}-day rate`,
+    scale: { lo:0, hi:100, ticks:[0,50,100] },      // a rate has a fixed domain
+    fmtY: pc,
+    fmtV: q => `${pc(q.v)} — ${q.hit} of ${plural(q.roll,'day')}`,
+    label: `Mobility completion rate, trailing ${MOB_ROLL} days`,
+    empty: 'One day logged so far — come back tomorrow for a trend.',
+  });
+
+  renderMobTable(w);
+  $('mobDashNote').innerHTML = series.length > 1
+    ? `Share of days you finished all ${MOB_ITEMS.length} moves, averaged over the
+       trailing ${MOB_ROLL} days. The day-by-day grid is on the Mobility tab.`
+    : `Finished all ${MOB_ITEMS.length} moves on ${plural(w.full,'day')} of ${w.days}.`;
+}
+
+/* the table twin: raw weekly counts, so nothing on the chart is hover-only */
+function renderMobTable(w){
+  $('mobTblToggle').textContent = showMobTable ? 'Hide weeks' : 'Show weeks';
+  if(!showMobTable){ $('mobTableWrap').innerHTML = ''; return; }
+  const rows = w.weeks.slice().reverse().map(b => `<tr>
+      <td style="text-align:left">${fmtShort(new Date(b.t))}</td>
+      <td>${b.full}<span class="muted">/${b.days}</span></td>
+      <td>${b.part || '—'}</td>
+      <td>${b.secs ? Math.round(b.secs/60) : '—'}</td>
+      <td>${pc(b.days ? b.full/b.days*100 : 0)}</td>
+    </tr>`).join('');
+  $('mobTableWrap').innerHTML = `<div style="overflow-x:auto;margin-top:10px;"><table class="tbl">
+    <thead><tr><th style="text-align:left">Week ending</th><th>Complete</th>
+      <th>Partial</th><th>Minutes</th><th>Rate</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+$('mobTblToggle').onclick = ()=>{
+  showMobTable = !showMobTable;
+  const f = rangeFrom();
+  renderMobTable(mobWindow(f ? dayAfter(f) : null));
+};
+
+/* ---- food & water: two daily counters against their targets ----
+   Deliberately stat tiles with sparklines rather than charts. Each measure is one
+   current value plus a trend, which is what a stat tile is for, and it keeps the two
+   off the categorical palette entirely: the four lift slots, body-weight gray and the
+   mobility hue already sit within ΔE 15 of every remaining candidate, and the answer to
+   a full hue budget is a different form, never a generated hue. The sparkline draws in
+   the de-emphasis gray with a neutral ink end-dot, so it claims no identity colour.
+   Calories and water are never plotted together — different scales, and a shared axis
+   would invent a relationship that isn't there. */
+const FUEL_DOT = 'var(--viz-ink)';
+let showFuelTable = false;
+
+/* every day in the window, oldest first, whether or not anything was logged */
+function fuelDays(from){
+  const isos = Object.keys(S.nutrition.log).sort();
+  if(!isos.length) return [];
+  const first = parseLocalDate(isos[0]), end = today();
+  const start = (from && +from > +first) ? from : first;
+  if(+start > +end) return [];
+  const out = [];
+  for(let d = new Date(start); +d <= +end; d = dayAfter(d)){
+    const iso = toISODate(d);
+    out.push({ t:+d, iso, kcal:dayKcal(iso), water:dayWater(iso) });
+  }
+  return out;
+}
+
+function renderFuelDash(){
+  const from = rangeFrom();
+  const days = fuelDays(from ? dayAfter(from) : null);
+  const kt = kcalTarget(), wt = waterTarget(), cfg = wcfg();
+
+  if(!days.length){
+    $('fuelDashTiles').innerHTML = '';
+    $('fuelTableWrap').innerHTML = '';
+    $('fuelTblToggle').style.display = 'none';
+    $('fuelDashNote').innerHTML = Object.keys(S.nutrition.log).length
+      ? 'Nothing logged in this range.'
+      : `Nothing logged yet. Calories and water are on the Fuel tab — they stay on this
+         device, so there is no account to connect.`;
+    return;
+  }
+  $('fuelTblToggle').style.display = '';
+
+  const kDays = days.filter(d => d.kcal > 0), wDays = days.filter(d => d.water > 0);
+  const avg = a => a.length ? a.reduce((t,x)=>t+x, 0)/a.length : 0;
+  const kAvg = avg(kDays.map(d => d.kcal)), wAvg = avg(wDays.map(d => d.water));
+  const spark = a => a.slice(-12).map(d => ({ t:d.t, v:d.v }));
+  const sparkW = Math.max(80, Math.floor((chartWidth() - 8)/2) - 24);
+
+  const kHit = days.filter(d => kcalOnTarget(d.iso)).length;
+  const wHit = days.filter(d => waterHit(d.iso)).length;
+
+  $('fuelDashTiles').innerHTML = `
+    <div class="tile">
+      <div class="lbl">Avg calories</div>
+      <div class="val">${kDays.length ? nf(kAvg) : '—'}<small>${kDays.length ? '/ day' : ''}</small></div>
+      <div class="dl muted">${kDays.length
+        ? (kt ? `target ${nf(kt)}` : `over ${plural(kDays.length,'day')}`) : 'nothing logged'}</div>
+      ${sparkline(spark(kDays.map(d=>({t:d.t, v:d.kcal}))), sparkW, 26, FUEL_DOT)}
+    </div>
+    <div class="tile">
+      <div class="lbl">Avg water</div>
+      <div class="val">${wDays.length ? nf(wAvg) : '—'}<small>${cfg.unit}</small></div>
+      <div class="dl muted">${wDays.length
+        ? (wt ? `target ${nf(wt)}` : `over ${plural(wDays.length,'day')}`) : 'nothing logged'}</div>
+      ${sparkline(spark(wDays.map(d=>({t:d.t, v:d.water}))), sparkW, 26, FUEL_DOT)}
+    </div>
+    <div class="tile">
+      <div class="lbl">Calories on target</div>
+      <div class="val">${kt ? kHit : '—'}<small>${kt ? `/ ${days.length}` : 'no target'}</small></div>
+      <div class="dl muted">${kt ? `within ${Math.round(KCAL_BAND*100)}% of ${nf(kt)}` : 'set one in Settings'}</div>
+    </div>
+    <div class="tile">
+      <div class="lbl">Water target met</div>
+      <div class="val">${wt ? wHit : '—'}<small>${wt ? `/ ${days.length}` : 'no target'}</small></div>
+      <div class="dl muted">${wt ? `${nf(wt)} ${cfg.unit} or more` : 'set one in Settings'}</div>
+    </div>`;
+
+  renderFuelTable(days);
+  $('fuelDashNote').innerHTML = `Averages count only the days you logged something
+    (${plural(kDays.length,'day')} of food, ${plural(wDays.length,'day')} of water); the
+    on-target counts are out of all ${plural(days.length,'day')} in range.`;
+}
+
+/* the table twin — the sparklines show shape only, so the numbers live here */
+function renderFuelTable(days){
+  $('fuelTblToggle').textContent = showFuelTable ? 'Hide days' : 'Show days';
+  if(!showFuelTable){ $('fuelTableWrap').innerHTML = ''; return; }
+  const cfg = wcfg(), kt = kcalTarget(), wt = waterTarget();
+  const rows = days.slice().reverse().map(d => `<tr>
+      <td style="text-align:left">${fmtShort(new Date(d.t))}</td>
+      <td>${d.kcal ? nf(d.kcal) : '—'}</td>
+      <td>${kt ? (kcalOnTarget(d.iso) ? '<span class="up">✔</span>' : '—') : '—'}</td>
+      <td>${d.water ? nf(d.water) : '—'}</td>
+      <td>${wt ? (waterHit(d.iso) ? '<span class="up">✔</span>' : '—') : '—'}</td>
+    </tr>`).join('');
+  $('fuelTableWrap').innerHTML = `<div style="overflow-x:auto;margin-top:10px;"><table class="tbl">
+    <thead><tr><th style="text-align:left">Date</th><th>Calories</th><th>On target</th>
+      <th>Water (${cfg.unit})</th><th>Met</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+$('fuelTblToggle').onclick = ()=>{
+  showFuelTable = !showFuelTable;
+  const f = rangeFrom();
+  renderFuelTable(fuelDays(f ? dayAfter(f) : null));
+};
 
 /* ---- column chart: tonnage by cycle (single series -> slot 1, no legend) ---- */
 function volChart(host, rows){
@@ -1624,7 +2718,23 @@ function renderSettings(){
   renderTMFields();
   renderPrefs();
   renderBBBSettings();
+  renderFuelSettings();
   renderSchedule();
+}
+
+function renderFuelSettings(){
+  const cfg = wcfg(), bw = lastBodyweight();
+  $('setWaterUnit').textContent = cfg.unit;
+  $('setKcal').value  = S.settings.kcalTarget  || '';
+  $('setWater').value = S.settings.waterTarget || '';
+  $('kcalFromBw').disabled  = !bw;
+  $('waterFromBw').disabled = !bw;
+  $('fuelSetNote').innerHTML = bw
+    ? `Estimates use your last body weight (${d1(bw.v)} ${U()}): about
+       ${nf(bw.v*KCAL_PER_BW[U()])} kcal to hold it, and ${nf(bw.v*cfg.perBw)} ${cfg.unit} of water.
+       Both are rough starting points — adjust from what actually happens on the scale.`
+    : `Log a body weight on the Train tab and this can estimate both targets for you.
+       Leave a target blank to just log without one.`;
 }
 
 function renderTMFields(){
@@ -1803,6 +2913,39 @@ $('nextCycleBtn').onclick = ()=>{
     save(); render();
   };
 });
+/* ---- food & water ---- */
+$('kcalAdd').onclick = ()=>{
+  const kcal = Math.round(parseFloat($('kcalIn').value));
+  if(!(kcal > 0)) return toast('Enter a calorie amount');
+  const name = $('kcalName').value.trim();
+  addKcal(kcal, name);
+  $('kcalIn').value = ''; $('kcalName').value = '';
+  renderFuel(); renderDash();
+  const t = kcalTarget(), tot = dayKcal(fuelKey());
+  toast(t ? (tot > t ? `${nf(tot - t)} over target` : `${nf(t - tot)} left today`) : `+${nf(kcal)} kcal`);
+};
+$('kcalIn').onkeydown = $('kcalName').onkeydown = e => { if(e.key === 'Enter') $('kcalAdd').click(); };
+
+$('setKcal').onchange = ()=>{
+  S.settings.kcalTarget = Math.max(0, Math.round(parseFloat($('setKcal').value) || 0));
+  save(); render();
+};
+$('setWater').onchange = ()=>{
+  S.settings.waterTarget = Math.max(0, Math.round(parseFloat($('setWater').value) || 0));
+  save(); render();
+};
+$('kcalFromBw').onclick = ()=>{
+  const bw = lastBodyweight(); if(!bw) return toast('Log a body weight first');
+  S.settings.kcalTarget = Math.round(bw.v*KCAL_PER_BW[U()]/10)*10;
+  save(); render(); toast(`Target ${nf(S.settings.kcalTarget)} kcal`);
+};
+$('waterFromBw').onclick = ()=>{
+  const bw = lastBodyweight(); if(!bw) return toast('Log a body weight first');
+  const cfg = wcfg();
+  S.settings.waterTarget = Math.round(bw.v*cfg.perBw / (cfg.unit === 'ml' ? 50 : 4))*(cfg.unit === 'ml' ? 50 : 4);
+  save(); render(); toast(`Target ${nf(S.settings.waterTarget)} ${cfg.unit}`);
+};
+
 $('setBBBDeload').onchange = ()=>{
   S.settings.bbbDeload = $('setBBBDeload').value === 'yes';
   save(); render();
@@ -1871,6 +3014,8 @@ document.querySelectorAll('nav button').forEach(b=>{
     b.classList.add('active');
     $('v-'+b.dataset.view).classList.add('active');
     if(b.dataset.view === 'set') renderStorageStatus();
+    if(b.dataset.view === 'mob')  renderMobility();  // re-reads "today" in case the date rolled over
+    if(b.dataset.view === 'fuel') renderFuel();
     window.scrollTo({top:0});
   };
 });
