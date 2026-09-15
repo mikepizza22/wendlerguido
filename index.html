@@ -115,15 +115,18 @@
   .bbbhead{display:flex;align-items:baseline;gap:8px;margin:18px 0 8px;flex-wrap:wrap;}
   .bbbhead b{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--accent2);}
   .bbbhead span{font-size:11px;color:var(--dim);}
-  .set.bbb,.set.mob{padding:9px 12px;cursor:pointer;user-select:none;}
-  .set.bbb .w{font-size:17px;min-width:70px;}
-  .set.bbb .chk,.set.mob .chk{
+  .set.bbb,.set.mob,.set.pull{padding:9px 12px;cursor:pointer;user-select:none;}
+  .set.bbb .w,.set.pull .w{font-size:17px;min-width:70px;}
+  .set.bbb .chk,.set.mob .chk,.set.pull .chk{
     width:22px;height:22px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;
     display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--good);
   }
-  .set.bbb.done,.set.mob.done{border-color:rgba(61,220,151,.55);background:rgba(61,220,151,.07);}
-  .set.bbb.done .chk,.set.mob.done .chk{border-color:var(--good);background:rgba(61,220,151,.16);}
-  .set.bbb.done .w{color:var(--good);}
+  .set.bbb.done,.set.mob.done,.set.pull.done{border-color:rgba(61,220,151,.55);background:rgba(61,220,151,.07);}
+  .set.bbb.done .chk,.set.mob.done .chk,.set.pull.done .chk{border-color:var(--good);background:rgba(61,220,151,.16);}
+  .set.bbb.done .w,.set.pull.done .w{color:var(--good);}
+  /* the test set is a rep input, not a checkbox, so it can't be "done" — it stays
+     framed in the accent the way the main AMRAP set is */
+  .set.pull.amrap{cursor:default;}
 
   /* ---------- daily mobility ---------- */
   .set.mob{align-items:flex-start;}
@@ -228,45 +231,20 @@
   .meter{height:6px;border-radius:3px;background:rgba(208,90,158,.22);overflow:hidden;margin:8px 0 1px;}
   .meter i{display:block;height:100%;background:var(--viz-mob);border-radius:3px;}
 
-  /* ---------- food & water ----------
-     These meters show state against a target, so the fill wears status tokens — that
-     is what status colors are for. No chart palette slot is involved: the dashboard
-     plots both measures as sparklines, which need no hue of their own. */
-  .meter.kcal{height:9px;background:rgba(255,138,61,.20);margin:12px 0 0;}
-  .meter.kcal i{background:var(--accent);}
-  .meter.kcal.hit i{background:var(--good);}
-  .meter.kcal.over i{background:var(--warn);}
+  /* ---------- water ----------
+     The meter shows state against a target, so the fill wears status tokens — that is
+     what status colors are for. No chart palette slot is involved: the dashboard plots
+     the measure as a sparkline, which needs no hue of its own. */
   .meter.water{height:9px;background:rgba(74,163,255,.20);margin:8px 0 0;}
   .meter.water i{background:var(--accent2);}
   .meter.water.hit i{background:var(--good);}
 
-  .chipsw{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0;}
-  .foodchip{
-    background:var(--panel2);border:1px solid var(--line);border-radius:999px;
-    padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer;
-    display:flex;align-items:center;gap:7px;
-  }
-  .foodchip b{font-weight:700;}
-  .foodchip small{color:var(--dim);font-weight:600;}
-  .foodchip .x{color:var(--dim);font-size:13px;padding:0 1px;}
-
-  .ent{
-    display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;
-    background:var(--panel2);border:1px solid var(--line);margin-top:7px;
-  }
-  .ent .nm{font-size:14px;font-weight:600;}
-  .ent .kc{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;}
-  .ent .x{color:var(--dim);cursor:pointer;padding:2px 4px;font-size:14px;}
-  .ent .save{font-size:11px;color:var(--accent2);cursor:pointer;font-weight:600;}
-
-  .wk7{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px 10px;align-items:center;font-size:13px;}
+  .wk7{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;font-size:13px;}
   .wk7 .d{color:var(--dim);font-size:12px;}
   .wk7 .v{font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px;}
-  .wk7 .t{height:5px;border-radius:3px;flex:1;overflow:hidden;}
-  .wk7 .t.k{background:rgba(255,138,61,.20);} .wk7 .t.w{background:rgba(74,163,255,.20);}
-  .wk7 .t i{display:block;height:100%;border-radius:3px;}
-  .wk7 .t.k i{background:var(--accent);} .wk7 .t.w i{background:var(--accent2);}
-  .wk7 .t.k.hit i,.wk7 .t.w.hit i{background:var(--good);}
+  .wk7 .t{height:5px;border-radius:3px;flex:1;overflow:hidden;background:rgba(74,163,255,.20);}
+  .wk7 .t i{display:block;height:100%;border-radius:3px;background:var(--accent2);}
+  .wk7 .t.hit i{background:var(--good);}
   .wk7 .hd{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);}
 
   .legend{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 10px;}
@@ -326,6 +304,7 @@
       <div id="warmups"></div>
       <div id="mainsets"></div>
       <div id="bbbsets"></div>
+      <div id="pullsets"></div>
       <div class="row" id="bwRow" style="margin-top:14px;align-items:flex-end;">
         <label class="fld" style="flex:1;margin-bottom:0;">
           <span id="bwLabel">Body weight</span>
@@ -359,7 +338,7 @@
 
     <div class="panel">
       <div class="row" style="margin-bottom:2px;">
-        <h2 style="margin:0;">The routine · 30 min</h2>
+        <h2 style="margin:0;" id="mobRoutineTitle">The routine</h2>
         <div class="spacer"></div>
         <button class="sm ghost" id="mobCuesBtn" title="Sound & vibration between moves"></button>
         <button class="sm primary" id="mobStartBtn"></button>
@@ -380,34 +359,18 @@
     </div>
   </section>
 
-  <!-- ============ FOOD & WATER ============ -->
-  <section class="view" id="v-fuel">
+  <!-- ============ WATER ============ -->
+  <section class="view" id="v-water">
     <div class="panel">
-      <div class="hero" id="kcalHero"></div>
-      <div class="meter kcal" id="kcalMeter"><i></i></div>
-      <div class="row wrap" style="margin-top:14px;align-items:flex-end;">
-        <label class="fld" style="flex:0 0 96px;margin-bottom:0;"><span>Calories</span>
-          <input id="kcalIn" type="number" inputmode="numeric" step="1" min="0" placeholder="0" /></label>
-        <label class="fld" style="flex:1;margin-bottom:0;"><span>What was it (optional)</span>
-          <input id="kcalName" type="text" placeholder="e.g. chicken and rice" /></label>
-        <button class="primary" id="kcalAdd">Add</button>
-      </div>
-      <div id="kcalFoods"></div>
-      <div id="kcalEntries"></div>
-      <p class="note" id="kcalNote"></p>
-    </div>
-
-    <div class="panel">
-      <h2>Water</h2>
-      <div id="waterHead"></div>
+      <div class="hero" id="waterHero"></div>
       <div class="meter water" id="waterMeter"><i></i></div>
-      <div class="row wrap" id="waterBtns" style="margin-top:12px;"></div>
+      <div class="row wrap" id="waterBtns" style="margin-top:14px;"></div>
       <p class="note" id="waterNote"></p>
     </div>
 
     <div class="panel">
       <h2>Last 7 days</h2>
-      <div id="fuelWeek"></div>
+      <div id="waterWeek"></div>
     </div>
   </section>
 
@@ -459,12 +422,22 @@
 
     <div class="panel">
       <div class="row" style="margin-bottom:8px;">
-        <h2 style="margin:0;">Food &amp; water</h2><div class="spacer"></div>
-        <button class="sm ghost" id="fuelTblToggle">Show days</button>
+        <h2 style="margin:0;">Strict pull-ups</h2><div class="spacer"></div>
+        <button class="sm ghost" id="pullTblToggle">Show sessions</button>
       </div>
-      <div class="tiles" id="fuelDashTiles"></div>
-      <div id="fuelTableWrap"></div>
-      <p class="note" id="fuelDashNote"></p>
+      <div class="tiles" id="pullDashTiles"></div>
+      <div id="pullTableWrap"></div>
+      <p class="note" id="pullDashNote"></p>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="margin-bottom:8px;">
+        <h2 style="margin:0;">Water</h2><div class="spacer"></div>
+        <button class="sm ghost" id="waterTblToggle">Show days</button>
+      </div>
+      <div class="tiles" id="waterDashTiles"></div>
+      <div id="waterTableWrap"></div>
+      <p class="note" id="waterDashNote"></p>
     </div>
 
     <div class="panel">
@@ -534,18 +507,32 @@
       </div>
     </div>
     <div class="panel">
-      <h2>Food &amp; water</h2>
-      <div class="grid2">
-        <label class="fld"><span>Daily calories</span>
-          <input id="setKcal" type="number" inputmode="numeric" step="10" min="0" placeholder="not set" /></label>
-        <label class="fld"><span>Daily water (<span id="setWaterUnit">oz</span>)</span>
-          <input id="setWater" type="number" inputmode="numeric" step="1" min="0" placeholder="not set" /></label>
+      <h2>Strict pull-ups</h2>
+      <label class="fld"><span>Programme</span>
+        <select id="setPull">
+          <option value="off">None</option>
+          <option value="on">Pull-up ladder — after the main work</option>
+        </select></label>
+      <div id="pullOpts">
+        <div class="grid2">
+          <label class="fld"><span>Best strict set (reps)</span>
+            <input id="setPullBest" type="number" inputmode="numeric" step="1" min="0" placeholder="0" /></label>
+          <label class="fld"><span>Which days</span>
+            <select id="setPullDays">
+              <option value="upper">Press &amp; bench days</option>
+              <option value="all">Every training day</option>
+            </select></label>
+        </div>
+        <p class="note" id="pullNote"></p>
       </div>
-      <div class="row wrap">
-        <button class="sm ghost" id="kcalFromBw">Estimate calories from body weight</button>
-        <button class="sm ghost" id="waterFromBw">Estimate water</button>
-      </div>
-      <p class="note" id="fuelSetNote"></p>
+    </div>
+
+    <div class="panel">
+      <h2>Water</h2>
+      <label class="fld"><span>Daily target (<span id="setWaterUnit">oz</span>)</span>
+        <input id="setWater" type="number" inputmode="numeric" step="1" min="0" placeholder="not set" /></label>
+      <button class="sm ghost" id="waterFromBw">Estimate from body weight</button>
+      <p class="note" id="waterSetNote"></p>
     </div>
 
     <div class="panel">
@@ -594,7 +581,7 @@
 <nav>
   <button class="active" data-view="train"><span class="ic">🏋️</span>Train</button>
   <button data-view="mob"><span class="ic">🧘</span>Mobility<span class="ndot" id="mobDot"></span></button>
-  <button data-view="fuel"><span class="ic">🍽️</span>Fuel<span class="ndot" id="fuelDot"></span></button>
+  <button data-view="water"><span class="ic">💧</span>Water<span class="ndot" id="waterDot"></span></button>
   <button data-view="plan"><span class="ic">📋</span>Plan</button>
   <button data-view="hist"><span class="ic">📈</span>Progress</button>
   <button data-view="set"><span class="ic">⚙️</span>Settings</button>
@@ -628,63 +615,93 @@ const BBB_WAVE = [50, 60, 70];   // steps once per cycle when pct = 'wave'
 const SESSIONS_PER_CYCLE = WEEKS.length * LIFTS.length;   // 16
 
 /* ================= Daily mobility =================
-   One fixed 30-minute routine, run every day rather than programmed in cycles —
+   One fixed 20-minute routine, run every day rather than programmed in cycles —
    nothing to progress, so there's nothing to periodize. The order is the point:
    joints first, then range under your own power, then long holds while you're warm,
-   then downregulation. Durations sum to exactly 30:00; sides are split inside a
-   move's time, so "45s a side" lives in the cue and not in a second row. */
+   then downregulation. Durations sum to exactly 20:00 (4 / 7 / 6 / 3 min); sides are
+   split inside a move's time, so "30s a side" lives in the cue and not in a second row.
+
+   Trimming 30 min to 20 cut the two moves whose work another move already does —
+   butterfly (adductors, covered by the cossack squat) and the standalone ankle rocks —
+   before it shortened any hold, so every joint the long version reached is still
+   reached. The holds that add range keep the most time. */
 const MOBILITY = [
-  { block:'Joint prep', mins:5, note:'Small ranges. No stretching yet.', items:[
-    {id:'neck',      name:'Neck nods & rolls',        secs:45, cue:'Slow yes, slow no, then half-circles ear to ear. Stay inside a painless range.'},
-    {id:'shoulder',  name:'Shoulder circles',         secs:45, cue:'Arms long, the biggest circle you can draw. Half forward, half back.'},
-    {id:'catcow',    name:'Cat–cow',                  secs:60, cue:'On all fours. Exhale to round, inhale to arch, one vertebra at a time.'},
+  { block:'Joint prep', mins:4, note:'Small ranges. No stretching yet.', items:[
+    {id:'neck',      name:'Neck nods & rolls',        secs:30, cue:'Slow yes, slow no, then half-circles ear to ear. Stay inside a painless range.'},
+    {id:'shoulder',  name:'Shoulder circles',         secs:30, cue:'Arms long, the biggest circle you can draw. Half forward, half back.'},
+    {id:'catcow',    name:'Cat–cow',                  secs:45, cue:'On all fours. Exhale to round, inhale to arch, one vertebra at a time.'},
     {id:'openbook',  name:'Thoracic open book',       secs:60, cue:'Side-lying, knees stacked. Rotate the top arm open and follow your hand with your eyes. 30s a side.'},
     {id:'hipcircle', name:'Standing hip circles',     secs:45, cue:'Knee up, trace a slow circle with it. Keep the standing leg quiet. Swap at halfway.'},
-    {id:'ankle',     name:'Ankle circles & rocks',    secs:45, cue:'Circles both directions, then rock heel to toe. 20s an ankle.'},
+    {id:'ankle',     name:'Ankle circles & rocks',    secs:30, cue:'Circles both directions, then rock heel to toe. 15s an ankle.'},
   ]},
-  { block:'Active mobility', mins:10, note:'Own the range under your own power.', items:[
-    {id:'wgs',       name:"World's greatest stretch", secs:120, cue:'Long lunge, hand inside the front foot, then reach the top arm to the ceiling. 60s a side.'},
-    {id:'ninety',    name:'90/90 hip switches',       secs:90,  cue:'Seated, both knees at 90°. Switch sides slowly without pushing off your hands.'},
-    {id:'squathold', name:'Deep squat hold & pry',    secs:90,  cue:'Heels down, elbows inside the knees. Shift side to side and pry the knees open.'},
-    {id:'cossack',   name:'Cossack squat',            secs:90,  cue:'Wide stance, sink to one side with that foot flat. Alternate slowly — no bouncing.'},
-    {id:'dogcobra',  name:'Down dog to cobra flow',   secs:90,  cue:'Hips back and heels down, then flow forward and open the chest. Follow your breath.'},
-    {id:'wallslide', name:'Wall slides',              secs:60,  cue:'Back and arms against the wall, slide overhead without letting the ribs flare.'},
-    {id:'ankledf',   name:'Kneeling ankle rocks',     secs:60,  cue:'Half-kneel and drive the knee past the toes with the heel glued down. 30s a side.'},
+  { block:'Active mobility', mins:7, note:'Own the range under your own power.', items:[
+    {id:'wgs',       name:"World's greatest stretch", secs:90, cue:'Long lunge, hand inside the front foot, then reach the top arm to the ceiling. 45s a side.'},
+    {id:'ninety',    name:'90/90 hip switches',       secs:60, cue:'Seated, both knees at 90°. Switch sides slowly without pushing off your hands.'},
+    {id:'squathold', name:'Deep squat hold & pry',    secs:60, cue:'Heels down, elbows inside the knees. Shift side to side and pry the knees open.'},
+    {id:'cossack',   name:'Cossack squat',            secs:60, cue:'Wide stance, sink to one side with that foot flat. Alternate slowly — no bouncing.'},
+    {id:'dogcobra',  name:'Down dog to cobra flow',   secs:60, cue:'Hips back and heels down, then flow forward and open the chest. Follow your breath.'},
+    {id:'wallslide', name:'Wall slides',              secs:45, cue:'Back and arms against the wall, slide overhead without letting the ribs flare.'},
+    {id:'ankledf',   name:'Kneeling ankle rocks',     secs:45, cue:'Half-kneel and drive the knee past the toes with the heel glued down. 22s a side.'},
   ]},
-  { block:'Static flexibility', mins:10, note:"Long holds. This is where range gets added.", items:[
-    {id:'hipflexor', name:'Kneeling hip flexor',      secs:90,  cue:'Tuck the pelvis under before you lean, then squeeze the glute on the down leg. 45s a side.'},
-    {id:'pigeon',    name:'Pigeon',                   secs:120, cue:'Front shin across, hips square, fold forward to taste. 60s a side.'},
-    {id:'fold',      name:'Seated forward fold',      secs:90,  cue:'Legs long, hinge from the hips with a soft knee. Breathe into the hamstrings.'},
-    {id:'butterfly', name:'Butterfly',                secs:60,  cue:'Soles together, hinge forward. Let gravity do it — never push the knees down.'},
-    {id:'fig4',      name:'Supine figure-4',          secs:90,  cue:'Ankle across the opposite knee, pull that knee toward your chest. 45s a side.'},
-    {id:'childside', name:"Child's pose, side reach", secs:90,  cue:'Hips to heels, then walk both hands to one side to open the lat. 45s a side.'},
-    {id:'chest',     name:'Floor chest & shoulder',   secs:60,  cue:'Face down, arm out at shoulder height, roll away from it. 30s a side.'},
+  { block:'Static flexibility', mins:6, note:"Long holds. This is where range gets added.", items:[
+    {id:'hipflexor', name:'Kneeling hip flexor',      secs:60, cue:'Tuck the pelvis under before you lean, then squeeze the glute on the down leg. 30s a side.'},
+    {id:'pigeon',    name:'Pigeon',                   secs:90, cue:'Front shin across, hips square, fold forward to taste. 45s a side.'},
+    {id:'fold',      name:'Seated forward fold',      secs:60, cue:'Legs long, hinge from the hips with a soft knee. Breathe into the hamstrings.'},
+    {id:'fig4',      name:'Supine figure-4',          secs:60, cue:'Ankle across the opposite knee, pull that knee toward your chest. 30s a side.'},
+    {id:'childside', name:"Child's pose, side reach", secs:45, cue:'Hips to heels, then walk both hands to one side to open the lat. 22s a side.'},
+    {id:'chest',     name:'Floor chest & shoulder',   secs:45, cue:'Face down, arm out at shoulder height, roll away from it. 22s a side.'},
   ]},
-  { block:'Recovery', mins:5, note:'Downshift. This part is the recovery.', items:[
-    {id:'twist',     name:'Supine spinal twist',      secs:90,  cue:'Knees to one side, shoulders flat on the floor, look the other way. 45s a side.'},
-    {id:'legswall',  name:'Legs up the wall',         secs:120, cue:'Hips close to the wall, legs resting up it. Let the calves and low back drain.'},
-    {id:'breathe',   name:'Box breathing',            secs:90,  cue:'In 4, hold 4, out 4, hold 4. Nose only, belly first.'},
+  { block:'Recovery', mins:3, note:'Downshift. This part is the recovery.', items:[
+    {id:'twist',     name:'Supine spinal twist',      secs:60, cue:'Knees to one side, shoulders flat on the floor, look the other way. 30s a side.'},
+    {id:'legswall',  name:'Legs up the wall',         secs:75, cue:'Hips close to the wall, legs resting up it. Let the calves and low back drain.'},
+    {id:'breathe',   name:'Box breathing',            secs:45, cue:'In 4, hold 4, out 4, hold 4. Nose only, belly first.'},
   ]},
 ];
 const MOB_ITEMS = MOBILITY.flatMap(b => b.items.map(i => ({...i, blockName:b.block})));
-const MOB_TOTAL = MOB_ITEMS.reduce((s,i) => s + i.secs, 0);   // 1800s
-const mobItem = id => MOB_ITEMS.find(i => i.id === id);
+const MOB_TOTAL = MOB_ITEMS.reduce((s,i) => s + i.secs, 0);   // 1200s
+const MOB_MINS  = Math.round(MOB_TOTAL/60);
 
-/* ================= Food & water =================
-   Calories and water are logged locally and never leave the device — there is no
-   MyFitnessPal API to talk to (their partner API has been shut to new developers for
-   years), and this app has no backend to hold an OAuth secret or proxy CORS anyway.
-   Both are plain daily counters, which is all the tracking actually needs.
+/* ================= Strict pull-ups =================
+   Programmed as assistance inside the 5/3/1 sessions rather than as a habit log of its
+   own: it rides the days that are already scheduled, gets logged against the workout it
+   happened in, and so can't drift out of the cycle the way a separate daily counter can.
+   Bodyweight pulling also has no training max to drive it, so the prescription is driven
+   by the one number the movement does give you — your best strict single.
 
-   Water is logged in the unit that matches the weight unit (fl oz with lb, ml with kg)
-   and converts with it. Calories are unit-free. */
+   Reps per set are deliberately held short of failure. Strict pull-ups come from
+   frequent quality reps, not from one weekly grind to zero, so every set is submaximal
+   and the total lands around 2–3× your best single. Week 3 — the 5/3/1 week, the one the
+   programme already treats as the test — swaps its last set for an AMRAP; beating your
+   best rewrites the prescription from the next session on. The deload leaves it alone. */
+const PULL_SETS = 5;
+
+/* Tiers, by best strict single. Under one rep there is no rep to submaximally repeat,
+   so the work becomes eccentrics and hangs — the two things that actually produce a
+   first pull-up — and the tier advances on its own the moment a best is logged.
+   "One short of failure" is only sustainable for five sets while the numbers are tiny,
+   so the percentage rule takes over from a best of five rather than carrying `b - 1`
+   up to 80% of a max; reps per set stay monotonic across the handover either way. */
+const PULL_TIERS = [
+  { max:0,        name:'Eccentrics',    reps:() => 1,
+    cue:'Jump or step to the top, then lower for a slow 5 seconds. Finish the last set with a 20-second dead hang.' },
+  { max:2,        name:'Singles',       reps:() => 1,
+    cue:'One clean rep per set — chin over the bar, full hang at the bottom, no kip. Rest 90s between sets.' },
+  { max:4,        name:'Sub-max sets',  reps: b => b - 1,
+    cue:'Stay one rep short of failure on every set. Rest 90s; if a set gets ugly, stop it early.' },
+  { max:Infinity, name:'Volume',        reps: b => Math.ceil(b * 0.55),
+    cue:'Just over half your best per set. Same grip every time, full range, rest 60–90s.' },
+];
+const pullTier = best => PULL_TIERS.find(t => best <= t.max);
+
+/* ================= Water =================
+   Logged locally and never leaves the device — a plain daily counter, which is all the
+   tracking actually needs. The unit follows the weight unit (fl oz with lb, ml with kg)
+   and converts with it. */
 const WATER = {
   lb: { unit:'oz', steps:[8,16,32],       target:100,  perBw:0.5 },   // ~half your body weight in oz
   kg: { unit:'ml', steps:[250,500,1000],  target:3000, perBw:35  },   // ~35 ml per kg
 };
-const ML_PER_OZ  = 29.5735;
-const KCAL_PER_BW = { lb:15, kg:33 };     // rough maintenance estimate, per unit of body weight
-const KCAL_BAND   = 0.10;                 // "on target" = within 10% either side
+const ML_PER_OZ = 29.5735;
 
 const DAY_NAMES = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 const DAY_MS = 86400000;
@@ -699,7 +716,8 @@ const DEFAULTS = {
   settings: { units:'lb', tmPct:90, roundTo:5, bar:45,
               bbb:'off', bbbLift:'same', bbbPct:'50', bbbDeload:false,
               startDate: toISODate(today()), trainDays:[1,2,4,5],
-              mobCues:true, kcalTarget:0, waterTarget:0 },
+              mobCues:true, waterTarget:0,
+              pull:'on', pullDays:'upper', pullBest:0 },
   tms:    { press:0, deadlift:0, bench:0, squat:0 },
   oneRMs: { press:0, deadlift:0, bench:0, squat:0 },
   cycle: 1,
@@ -712,10 +730,22 @@ const DEFAULTS = {
   mobility: { log: {} },   // "YYYY-MM-DD" -> { items:[id], secs, at }
   /* Same shape and the same reasoning as `mobility`: a daily habit keyed by calendar
      date, kept out of `history` so it can't reach the lift charts.
-     log: "YYYY-MM-DD" -> { entries:[{name,kcal}], wadds:[amount], wu:'oz'|'ml', at }
-     foods: quick-add list the user builds up, most recent first. */
-  nutrition: { log: {}, foods: [] },
+     log: "YYYY-MM-DD" -> { wadds:[amount], wu:'oz'|'ml', at } */
+  water: { log: {} },
 };
+
+/* Calorie logging used to share this day record as `nutrition`. Reduce a saved day to
+   its water and drop it if water is all it had, so days that only ever held food leave
+   no empty record behind. An export taken before the change still has the food in it. */
+function waterOnlyLog(log){
+  const out = {};
+  Object.entries(log || {}).forEach(([iso, r]) => {
+    if(!r || !Array.isArray(r.wadds) || !r.wadds.length) return;
+    const { entries, ...rest } = r;
+    out[iso] = rest;
+  });
+  return out;
+}
 
 /* ================= State ================= */
 const KEY = 'wendler531.v1';
@@ -733,15 +763,19 @@ function load(){
       parsed.settings.bbbPct = String(parsed.settings.bbb);
       parsed.settings.bbb = 'on';
     }
-    return Object.assign(structuredClone(DEFAULTS), parsed, {
+    const merged = Object.assign(structuredClone(DEFAULTS), parsed, {
       dates:    Object.assign({}, parsed.dates||{}),   // absent in pre-reschedule saves
       settings: Object.assign({}, DEFAULTS.settings, parsed.settings||{}),
       tms:      Object.assign({}, DEFAULTS.tms,      parsed.tms||{}),
       oneRMs:   Object.assign({}, DEFAULTS.oneRMs,   parsed.oneRMs||{}),
       mobility: { log: (parsed.mobility && parsed.mobility.log) || {} },   // absent pre-mobility
-      nutrition: { log:   (parsed.nutrition && parsed.nutrition.log)   || {},
-                   foods: (parsed.nutrition && parsed.nutrition.foods) || [] },
+      water:    { log: waterOnlyLog((parsed.water     && parsed.water.log)
+                                 || (parsed.nutrition && parsed.nutrition.log)) },
     });
+    // the old key and the calorie target would otherwise be copied straight back out again
+    delete merged.nutrition;
+    delete merged.settings.kcalTarget;
+    return merged;
   }catch(e){ return structuredClone(DEFAULTS); }
 }
 /* Writes go to localStorage (source of truth) and are mirrored into IndexedDB as a
@@ -899,11 +933,10 @@ function convertUnits(to){
 
   /* Water rides along with the weight unit: fl oz with lb, ml with kg. Each day stamps
      the unit it was logged in, exactly as history entries do, so a day already in the
-     target unit is left alone and a repeated switch can't double-convert it. Calories
-     are unit-free and never touched. */
+     target unit is left alone and a repeated switch can't double-convert it. */
   const wu  = WATER[to].unit;
   const wat = v => !v ? v : (wu === 'ml' ? Math.round(v*ML_PER_OZ/10)*10 : Math.round(v/ML_PER_OZ));
-  Object.values(S.nutrition.log).forEach(r => {
+  Object.values(S.water.log).forEach(r => {
     if(!r.wadds || !r.wadds.length) { r.wu = wu; return; }
     if((r.wu || WATER[from].unit) !== wu) r.wadds = r.wadds.map(wat);
     r.wu = wu;
@@ -953,6 +986,33 @@ function bbbFor(mainLiftId, week){
   return { liftId:id, name:liftById(id).name, pct, weight:setWeight(tm, pct),
            sets:BBB_SETS, reps:BBB_REPS };
 }
+
+/* The pull-up block attached to a given main lift + week, or null if it doesn't apply.
+   Same shape and the same contract as bbbFor: a pure read of settings and cycle
+   position, so the Train tab, the Plan tab and the save handler all derive one
+   prescription from one place instead of three that can disagree. */
+function pullFor(mainLiftId, week){
+  const st = S.settings;
+  if(st.pull !== 'on') return null;
+  if(st.pullDays !== 'all' && !liftById(mainLiftId).upper) return null;
+
+  const best = Math.max(0, Math.round(st.pullBest) || 0);
+  const tier = pullTier(best);
+  const base = Math.max(1, tier.reps(best));
+  const deload = week === 4;
+  const test   = week === 3 && !deload;   // the 5/3/1 week is the programme's own test week
+
+  return {
+    tier:tier.name, cue:tier.cue, best, test, deload,
+    /* The test set replaces a working set instead of being added to one, so the heaviest
+       week of the cycle carries the same pulling volume as every other week. */
+    sets: deload ? 3 : test ? PULL_SETS - 1 : PULL_SETS,
+    reps: deload ? Math.max(1, Math.ceil(base/2)) : base,
+  };
+}
+/* reps performed, read back off a logged block (the test set is counted separately
+   because its reps aren't known until they're done) */
+const pullDoneReps = p => p ? p.reps * (p.done || 0) + (p.testReps || 0) : 0;
 
 /* ================= Schedule ================= */
 function parseLocalDate(s){
@@ -1082,7 +1142,7 @@ const $ = id => document.getElementById(id);
 
 function render(){
   renderHeader(); renderWeekStrip(); renderChips(); renderWorkout();
-  renderCycleDone(); renderPlan(); renderMobility(); renderFuel();
+  renderCycleDone(); renderPlan(); renderMobility(); renderWater();
   renderDash(); renderSettings();
 }
 
@@ -1179,7 +1239,7 @@ function renderWorkout(){
 
   if(!tm){
     $('warmups').innerHTML = `<p class="note">No training max set for ${lift.name}. Add one in Settings.</p>`;
-    $('mainsets').innerHTML = ''; $('bbbsets').innerHTML = '';
+    $('mainsets').innerHTML = ''; $('bbbsets').innerHTML = ''; $('pullsets').innerHTML = '';
     $('saveBtn').disabled = true; $('e1rmNote').textContent = '';
     $('bwRow').style.display = 'none'; $('bwHint').textContent = '';
     return;
@@ -1195,13 +1255,19 @@ function renderWorkout(){
     wk.sets.map(s => setRow(setWeight(tm,s.pct), s.reps, s.pct, {amrap:s.amrap})).join('');
 
   renderBBB(lift, rec);
+  renderPull(lift, rec);
   renderBWField(rec);
 
   $('e1rmNote').innerHTML = e1rmNoteHTML(tm, wk, rec);
 
-  const inp = document.querySelector('.amrapin');   // restore a previously logged AMRAP
+  const inp = mainAmrapInput();   // restore a previously logged AMRAP
   if(inp && rec) inp.value = rec.amrapReps;
 }
+
+/* The pull-up test set is an AMRAP input too, so both lookups are scoped to the block
+   they belong to rather than taking whichever input the document happens to hold first. */
+const mainAmrapInput = () => $('mainsets').querySelector('.amrapin');
+const pullTestInput  = () => $('pullsets').querySelector('.amrapin');
 
 /* the weight + plate-breakdown cell shared by every set row */
 const weightCell = w => `<div>
@@ -1268,6 +1334,96 @@ function renderBBB(lift, rec){
       const i = +el.dataset.bbb;
       bbbDraft.done = (bbbDraft.done === i+1) ? i : i+1;   // tap to fill up to that set
       renderBBB(lift, rec);
+    };
+  });
+}
+
+/* --- strict pull-up block --- */
+let pullDraft = { key:null, done:0 };   // sets checked off for the workout on screen
+
+function renderPull(lift, rec){
+  const host = $('pullsets');
+  const cfg  = pullFor(lift.id, viewWeek);
+  if(!cfg){
+    host.innerHTML = (S.settings.pull === 'on')
+      ? `<p class="note" style="margin-top:12px;">Pull-ups run on press and bench days —
+           Settings can put them on every training day instead.</p>`
+      : '';
+    return;
+  }
+
+  const key = doneKey(S.cycle, viewWeek, lift.id);
+  const sameWorkout = pullDraft.key === key;
+  if(!sameWorkout)                                          // reset the draft per workout
+    pullDraft = { key, done: (rec && rec.pull ? rec.pull.done : 0) };
+
+  const total = cfg.sets + (cfg.test ? 1 : 0);
+  const quality = cfg.tier === 'Eccentrics' ? '5s lower, no jump back up' : 'strict, full hang';
+  /* Ticking a working set rebuilds this block, so anything already typed into the test
+     set is read back out first — otherwise checking a box would erase it. Only within the
+     same workout, though: the host still holds the last one's markup when you switch
+     lifts, and a rep count typed there belongs to that session and not to this one. */
+  const typed = sameWorkout && pullTestInput() ? pullTestInput().value : null;
+
+  const rows = Array.from({length: cfg.sets}, (_, i) => {
+    const on = i < pullDraft.done;
+    return `<div class="set pull ${on?'done':''}" data-pull="${i}">
+      <div class="chk">${on?'✓':''}</div>
+      <div>
+        <div class="w">${cfg.reps}<small>${cfg.reps===1?'rep':'reps'}</small></div>
+        <div class="pl">${quality}</div>
+      </div>
+      <div class="spacer"></div>
+      <div style="text-align:right;">
+        <div class="r"><span class="muted">set ${i+1}/${total}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  /* The test set takes a rep count rather than a tick: it is the one set whose number
+     isn't known in advance, and it's the number the whole prescription is derived from. */
+  const testRow = cfg.test ? `<div class="set pull amrap">
+      <div>
+        <div class="w">${Math.max(1, cfg.best)}+<small>reps</small></div>
+        <div class="pl">${cfg.best ? 'beat your best' : 'as many strict as you can'}</div>
+      </div>
+      <div class="spacer"></div>
+      <div style="text-align:right;">
+        <div class="r"><span class="muted">set ${total}/${total}</span></div>
+        <div class="tag">Test</div>
+      </div>
+      <input class="amrapin" type="number" inputmode="numeric" min="0"
+             placeholder="${Math.max(1, cfg.best)}" aria-label="Strict pull-up test reps" />
+    </div>` : '';
+
+  host.innerHTML = `
+    <div class="bbbhead">
+      <b>Strict pull-ups</b>
+      <span>${cfg.sets}×${cfg.reps}${cfg.test ? ' + test' : ''} · ${cfg.tier}
+        ${cfg.deload ? '<span class="tag" style="color:var(--accent2)">deload</span>' : ''}</span>
+      <div class="spacer"></div>
+      <span>${pullDraft.done}/${cfg.sets}</span>
+    </div>
+    ${rows}${testRow}
+    <p class="note">${cfg.cue}<br>
+      ${cfg.best
+        ? `Built from a best of <b>${cfg.best}</b> — ${plural(cfg.sets*cfg.reps,'rep')} across the
+           working sets${cfg.test ? ', then the test' : ''}.`
+        : `No best logged yet, so this is the eccentric tier. Log a test set or type your
+           best into Settings and the prescription moves up.`}
+      ${cfg.test ? '' : ' The week&nbsp;3 session tests it.'}</p>`;
+
+  const ti = pullTestInput();
+  if(ti){
+    const logged = rec && rec.pull && rec.pull.testReps != null ? rec.pull.testReps : '';
+    ti.value = typed !== null && typed !== '' ? typed : logged;
+  }
+
+  host.querySelectorAll('[data-pull]').forEach(el=>{
+    el.onclick = ()=>{
+      const i = +el.dataset.pull;
+      pullDraft.done = (pullDraft.done === i+1) ? i : i+1;   // tap to fill up to that set
+      renderPull(lift, rec);
     };
   });
 }
@@ -1340,12 +1496,18 @@ function renderPlan(){
         const txt = `${fmt(setWeight(tm,s.pct))}×${s.reps}${s.amrap?'+':''}`;
         return s.amrap ? `<b style="color:var(--accent)">${txt}</b>` : txt;
       }).join('  /  ');
+      const sub = (txt) =>
+        `<div style="font-size:11px;color:var(--dim);font-weight:500;margin-top:2px;">${txt}</div>`;
       const b = bbbFor(l.id, w.n);
       const bl = b
-        ? `<div style="font-size:11px;color:var(--dim);font-weight:500;margin-top:2px;">
-             + BBB ${b.sets}×${b.reps} ${b.liftId!==l.id?liftById(b.liftId).short+' ':''}@ ${fmt(b.weight)}</div>`
+        ? sub(`+ BBB ${b.sets}×${b.reps} ${b.liftId!==l.id?liftById(b.liftId).short+' ':''}@ ${fmt(b.weight)}`)
         : '';
-      return `<div class="kv"><span>${l.name}${tick}${dt}</span><span class="v">${ws}${bl}</span></div>`;
+      const p = pullFor(l.id, w.n);
+      const pl = p
+        ? sub(`+ Pull-ups ${p.sets}×${p.reps}${p.test
+            ? ` + <b style="color:var(--accent)">test</b>` : ''}`)
+        : '';
+      return `<div class="kv"><span>${l.name}${tick}${dt}</span><span class="v">${ws}${bl}${pl}</span></div>`;
     }).join('');
     return `<h2 style="margin-top:14px;">Week ${w.n} — ${w.label}</h2>${rows}`;
   }).join('');
@@ -1522,6 +1684,7 @@ function renderMobList(){
   const ids = mobDoneSet(mobKey());
   const cur = mob.running ? MOB_ITEMS[mob.idx].id : null;
 
+  $('mobRoutineTitle').textContent = `The routine · ${MOB_MINS} min`;
   $('mobStartBtn').textContent = mob.running ? 'Running…'
     : ids.size >= MOB_ITEMS.length ? 'Run it again'
     : ids.size ? 'Continue' : 'Start';
@@ -1707,7 +1870,7 @@ function cue(tones, pattern){
     }
   }catch(e){}
 }
-/* 30 minutes on the floor is 30 minutes of not touching the screen */
+/* 20 minutes on the floor is 20 minutes of not touching the screen */
 async function mobWakeLock(on){
   try{
     if(on && !mob.lock && navigator.wakeLock)
@@ -1742,150 +1905,59 @@ $('mobClearBtn').onclick = ()=>{
   toast('Cleared today');
 };
 
-/* ================= Food & water =================
-   One record per calendar day. Calories are a list of entries so a mis-typed one can
-   be removed individually; water is a list of the amounts added so "undo" takes back
-   exactly the last pour rather than guessing a step size. Both totals are derived from
-   those lists, so a total can never drift out of step with what it is a total of. */
-const wcfg      = () => WATER[U()];
-const fuelKey   = d => toISODate(d || today());
-const fuelRec   = iso => S.nutrition.log[iso] || null;
-const dayKcal   = iso => (fuelRec(iso)?.entries || []).reduce((t,e) => t + e.kcal, 0);
-const dayWater  = iso => (fuelRec(iso)?.wadds   || []).reduce((t,v) => t + v, 0);
-const kcalTarget  = () => S.settings.kcalTarget  || 0;
+/* ================= Water =================
+   One record per calendar day. The day keeps the list of amounts added rather than a
+   running total, so "undo" takes back exactly the last pour instead of guessing a step
+   size, and the total is derived from that list and so can never drift out of step with
+   what it is a total of. Everything stays on the device — it is a daily counter, which
+   is all the tracking needs. */
+const wcfg        = () => WATER[U()];
+const waterKey    = d => toISODate(d || today());
+const waterRec    = iso => S.water.log[iso] || null;
+const dayWater    = iso => (waterRec(iso)?.wadds || []).reduce((t,v) => t + v, 0);
 const waterTarget = () => S.settings.waterTarget || 0;
-const kcalOnTarget  = iso => { const t = kcalTarget(), v = dayKcal(iso);
-  return !!t && !!v && Math.abs(v - t) <= t*KCAL_BAND; };
-const waterHit = iso => { const t = waterTarget(); return !!t && dayWater(iso) >= t; };
+const waterHit    = iso => { const t = waterTarget(); return !!t && dayWater(iso) >= t; };
 
-function fuelDay(iso){
-  return S.nutrition.log[iso]
-    || (S.nutrition.log[iso] = { entries:[], wadds:[], wu:wcfg().unit, at:null });
+function waterDay(iso){
+  return S.water.log[iso] || (S.water.log[iso] = { wadds:[], wu:wcfg().unit, at:null });
 }
 /* drops a day that has been emptied back out, so untouched days leave no record */
-function fuelCommit(iso){
-  const r = S.nutrition.log[iso];
-  if(r && !r.entries.length && !r.wadds.length) delete S.nutrition.log[iso];
+function waterCommit(iso){
+  const r = S.water.log[iso];
+  if(r && !r.wadds.length) delete S.water.log[iso];
   else if(r) r.at = new Date().toISOString();
   save();
 }
-function addKcal(kcal, name){
-  const iso = fuelKey();
-  fuelDay(iso).entries.push({ name: name || '', kcal });
-  fuelCommit(iso);
-}
 function addWater(amount){
-  const iso = fuelKey();
-  const d = fuelDay(iso);
+  const iso = waterKey();
+  const d = waterDay(iso);
   d.wadds.push(amount); d.wu = wcfg().unit;
-  fuelCommit(iso);
-}
-/* keeps the most recent 12, newest first, matched on name so re-adding just moves it up */
-function saveFood(name, kcal){
-  if(!name) return;
-  const foods = S.nutrition.foods.filter(f => f.name.toLowerCase() !== name.toLowerCase());
-  foods.unshift({ name, kcal });
-  S.nutrition.foods = foods.slice(0, 12);
-  save();
-}
-
-function renderFuel(){
-  renderKcal();
-  renderWater();
-  renderFuelWeek();
-  renderFuelBadge();
-}
-/* the nudge is for water only: a calorie target can legitimately be met by not eating
-   more, but water left unlogged is almost always water not drunk */
-function renderFuelBadge(){
-  const t = waterTarget();
-  $('fuelDot').style.display = (t && !waterHit(fuelKey())) ? 'block' : 'none';
-}
-
-function renderKcal(){
-  const iso = fuelKey(), kcal = dayKcal(iso), t = kcalTarget();
-  const rec = fuelRec(iso), entries = rec ? rec.entries : [];
-
-  $('kcalHero').innerHTML = `
-    <div class="lbl">Calories today</div>
-    <div class="val">${nf(kcal)}${t ? `<small>/ ${nf(t)}</small>` : '<small>kcal</small>'}</div>
-    <div class="dl ${!t ? 'muted' : kcalOnTarget(iso) ? 'up' : 'flat'}">${
-      !t   ? 'No target set — Settings has one, or just log and watch the trend.'
-      : kcal > t ? `${nf(kcal - t)} over target`
-      : `${nf(t - kcal)} left today`}</div>`;
-
-  const m = $('kcalMeter');
-  m.style.display = t ? '' : 'none';
-  if(t){
-    m.className = 'meter kcal' + (kcal > t*(1+KCAL_BAND) ? ' over' : kcalOnTarget(iso) ? ' hit' : '');
-    m.firstElementChild.style.width = Math.min(100, kcal/t*100).toFixed(1) + '%';
-    m.setAttribute('role','img');
-    m.setAttribute('aria-label', `${nf(kcal)} of ${nf(t)} calories`);
-  }
-
-  $('kcalFoods').innerHTML = S.nutrition.foods.length
-    ? `<div class="chipsw">` + S.nutrition.foods.map((f,i) =>
-        `<span class="foodchip" data-food="${i}"><b>${esc(f.name)}</b>
-           <small>${nf(f.kcal)}</small><span class="x" data-delfood="${i}" role="button"
-           aria-label="Forget ${esc(f.name)}">✕</span></span>`).join('') + `</div>`
-    : '';
-
-  $('kcalEntries').innerHTML = entries.length
-    ? entries.map((e,i) => `<div class="ent">
-        <div>
-          <div class="nm">${e.name ? esc(e.name) : 'Quick add'}</div>
-          ${e.name && !S.nutrition.foods.some(f => f.name.toLowerCase() === e.name.toLowerCase())
-            ? `<span class="save" data-savefood="${i}" role="button">+ save for later</span>` : ''}
-        </div>
-        <div class="spacer"></div>
-        <div class="kc">${nf(e.kcal)}</div>
-        <span class="x" data-delent="${i}" role="button" aria-label="Remove">✕</span>
-      </div>`).join('')
-    : `<p class="note">Nothing logged today.</p>`;
-
-  $('kcalNote').innerHTML = S.nutrition.foods.length
-    ? `Tap a saved food to add it again. Everything stays on this device.`
-    : `Log something with a name and you can save it as a one-tap button.`;
-
-  $('kcalFoods').querySelectorAll('[data-food]').forEach(el => {
-    el.onclick = ev => {
-      if(ev.target.dataset.delfood != null) return;      // the ✕ has its own job
-      const f = S.nutrition.foods[+el.dataset.food];
-      addKcal(f.kcal, f.name); renderFuel(); renderDash();
-      toast(`+${nf(f.kcal)} ${f.name}`);
-    };
-  });
-  $('kcalFoods').querySelectorAll('[data-delfood]').forEach(el => {
-    el.onclick = ev => {
-      ev.stopPropagation();
-      S.nutrition.foods.splice(+el.dataset.delfood, 1);
-      save(); renderFuel();
-    };
-  });
-  $('kcalEntries').querySelectorAll('[data-delent]').forEach(el => {
-    el.onclick = () => {
-      const r = fuelRec(iso); if(!r) return;
-      r.entries.splice(+el.dataset.delent, 1);
-      fuelCommit(iso); renderFuel(); renderDash();
-    };
-  });
-  $('kcalEntries').querySelectorAll('[data-savefood]').forEach(el => {
-    el.onclick = () => {
-      const e = entries[+el.dataset.savefood];
-      saveFood(e.name, e.kcal); renderFuel(); toast(`Saved ${e.name}`);
-    };
-  });
+  waterCommit(iso);
 }
 
 function renderWater(){
-  const iso = fuelKey(), cfg = wcfg();
+  renderWaterToday();
+  renderWaterWeek();
+  renderWaterBadge();
+}
+/* water left unlogged is almost always water not drunk, so the tab keeps a nudge on it
+   until the day's target is met */
+function renderWaterBadge(){
+  const t = waterTarget();
+  $('waterDot').style.display = (t && !waterHit(waterKey())) ? 'block' : 'none';
+}
+
+function renderWaterToday(){
+  const iso = waterKey(), cfg = wcfg();
   const v = dayWater(iso), t = waterTarget();
 
-  $('waterHead').innerHTML = `
-    <div class="big">${nf(v)}<span class="muted" style="font-size:14px;font-weight:600;">
-      ${t ? ` / ${nf(t)} ${cfg.unit}` : ` ${cfg.unit}`}</span></div>
-    <div class="dl ${!t ? 'muted' : waterHit(iso) ? 'up' : 'flat'}" style="font-size:13px;">${
-      !t ? 'No target set.' : waterHit(iso) ? '✔ Target met' : `${nf(t - v)} ${cfg.unit} to go`}</div>`;
+  $('waterHero').innerHTML = `
+    <div class="lbl">Water today</div>
+    <div class="val">${nf(v)}<small>${t ? `/ ${nf(t)} ${cfg.unit}` : cfg.unit}</small></div>
+    <div class="dl ${!t ? 'muted' : waterHit(iso) ? 'up' : 'flat'}">${
+      !t ? 'No target set — Settings has one, or just log and watch the trend.'
+      : waterHit(iso) ? `✔ Target met — ${fmtLong(today())}`
+      : `${nf(t - v)} ${cfg.unit} to go today`}</div>`;
 
   const m = $('waterMeter');
   m.style.display = t ? '' : 'none';
@@ -1899,15 +1971,15 @@ function renderWater(){
   $('waterBtns').innerHTML = cfg.steps.map(n =>
       `<button class="sm" data-water="${n}">+${n}</button>`).join('')
     + `<div class="spacer"></div>
-       <button class="sm ghost" id="waterUndo" ${(fuelRec(iso)?.wadds || []).length ? '' : 'disabled'}>Undo</button>`;
+       <button class="sm ghost" id="waterUndo" ${(waterRec(iso)?.wadds || []).length ? '' : 'disabled'}>Undo</button>`;
 
   $('waterBtns').querySelectorAll('[data-water]').forEach(b => {
-    b.onclick = () => { addWater(+b.dataset.water); renderFuel(); renderDash(); };
+    b.onclick = () => { addWater(+b.dataset.water); renderWater(); renderDash(); };
   });
   $('waterUndo').onclick = () => {
-    const r = fuelRec(iso); if(!r || !r.wadds.length) return;
+    const r = waterRec(iso); if(!r || !r.wadds.length) return;
     const back = r.wadds.pop();
-    fuelCommit(iso); renderFuel(); renderDash();
+    waterCommit(iso); renderWater(); renderDash();
     toast(`−${nf(back)} ${cfg.unit}`);
   };
 
@@ -1916,22 +1988,21 @@ function renderWater(){
     it converts if you switch between lb and kg.`;
 }
 
-/* the last seven days, oldest first, as two target-relative tracks */
-function renderFuelWeek(){
-  const kt = kcalTarget(), wt = waterTarget(), cfg = wcfg();
-  let rows = `<div class="wk7"><span></span><span class="hd">Calories</span><span class="hd">Water</span>`;
+/* the last seven days, oldest first, as one target-relative track */
+function renderWaterWeek(){
+  const wt = waterTarget(), cfg = wcfg();
+  let rows = `<div class="wk7"><span></span><span class="hd">Water (${cfg.unit})</span>`;
   for(let i=6; i>=0; i--){
     const d = new Date(today().getFullYear(), today().getMonth(), today().getDate() - i);
-    const iso = toISODate(d);
-    const k = dayKcal(iso), w = dayWater(iso);
-    const bar = (val, tgt, cls, hit) => tgt
-      ? `<div class="t ${cls}${hit?' hit':''}"><i style="width:${Math.min(100, val/tgt*100).toFixed(1)}%"></i></div>`
+    const iso = toISODate(d), w = dayWater(iso);
+    const bar = wt
+      ? `<div class="t${waterHit(iso)?' hit':''}"><i style="width:${
+           Math.min(100, w/wt*100).toFixed(1)}%"></i></div>`
       : '';
     rows += `<span class="d">${i === 0 ? 'Today' : fmtShort(d)}</span>
-      <span class="v">${k ? nf(k) : '—'}${bar(k, kt, 'k', kcalOnTarget(iso))}</span>
-      <span class="v">${w ? nf(w) : '—'}${bar(w, wt, 'w', waterHit(iso))}</span>`;
+      <span class="v">${w ? nf(w) : '—'}${bar}</span>`;
   }
-  $('fuelWeek').innerHTML = rows + `</div>`;
+  $('waterWeek').innerHTML = rows + `</div>`;
 }
 
 /* ================= Progress dashboard =================
@@ -2056,7 +2127,8 @@ function renderDash(){
   lineChart($('e1rmChart'), pts);
   renderBW(rows, pts);
   renderMobDash();
-  renderFuelDash();
+  renderPullDash(rows);
+  renderWaterDash();
   volChart($('volChart'), rows);
   renderTable(rows);
 }
@@ -2423,7 +2495,7 @@ function renderMobDash(){
     $('mobTblToggle').style.display = 'none';
     $('mobDashNote').innerHTML = mobFirstDay()
       ? `No mobility logged in this range.`
-      : `Nothing logged yet. The 30-minute routine lives on the Mobility tab —
+      : `Nothing logged yet. The ${MOB_MINS}-minute routine lives on the Mobility tab —
          finish a day and its consistency charts here.`;
     return;
   }
@@ -2505,21 +2577,129 @@ $('mobTblToggle').onclick = ()=>{
   renderMobTable(mobWindow(f ? dayAfter(f) : null));
 };
 
-/* ---- food & water: two daily counters against their targets ----
-   Deliberately stat tiles with sparklines rather than charts. Each measure is one
-   current value plus a trend, which is what a stat tile is for, and it keeps the two
-   off the categorical palette entirely: the four lift slots, body-weight gray and the
-   mobility hue already sit within ΔE 15 of every remaining candidate, and the answer to
-   a full hue budget is a different form, never a generated hue. The sparkline draws in
-   the de-emphasis gray with a neutral ink end-dot, so it claims no identity colour.
-   Calories and water are never plotted together — different scales, and a shared axis
-   would invent a relationship that isn't there. */
-const FUEL_DOT = 'var(--viz-ink)';
-let showFuelTable = false;
+/* ---- pull-ups and water: counters, not loads ----
+   Deliberately stat tiles with sparklines rather than charts. Each is one current value
+   plus a trend, which is what a stat tile is for, and it keeps both off the categorical
+   palette entirely: the four lift slots, body-weight gray and the mobility hue already
+   sit within ΔE 15 of every remaining candidate, and the answer to a full hue budget is
+   a different form, never a generated hue. The sparkline draws in the de-emphasis gray
+   with a neutral ink end-dot, so it claims no identity colour. The two measures are
+   never plotted together — different scales, and a shared axis would invent a
+   relationship that isn't there. */
+const NEUTRAL_DOT = 'var(--viz-ink)';
+const sparkOf = a => a.slice(-12).map(d => ({ t:d.t, v:d.v }));
+const sparkWidth = () => Math.max(80, Math.floor((chartWidth() - 8)/2) - 24);
+
+/* ---- strict pull-ups ----
+   The series is per session, not per day: pull-ups are logged against the workout they
+   happened in, so a session is the unit that exists. Best-set is read from the test sets
+   only — a submaximal working set says nothing about a maximum. */
+let showPullTable = false;
+
+function pullSessions(rows){
+  return rows.filter(h => h.pull && (h.pull.done || h.pull.testReps))
+             .map(h => ({
+               t: +new Date(h.date), lift: h.lift, cycle: h.cycle, week: h.week,
+               p: h.pull, reps: pullDoneReps(h.pull),
+             }));
+}
+const pullBestEver = () => Math.max(
+  S.settings.pullBest || 0,
+  ...S.history.map(h => (h.pull && h.pull.testReps) || 0));
+
+function renderPullDash(rows){
+  const ses = pullSessions(rows);
+
+  if(!ses.length){
+    $('pullDashTiles').innerHTML = '';
+    $('pullTableWrap').innerHTML = '';
+    $('pullTblToggle').style.display = 'none';
+    $('pullDashNote').innerHTML = S.settings.pull === 'on'
+      ? `Nothing logged in this range. The ladder sits under the main sets on press and
+         bench days — tick the sets off when you log the workout and it charts here.`
+      : `Pull-ups are switched off. Settings turns the ladder back on.`;
+    return;
+  }
+  $('pullTblToggle').style.display = '';
+
+  const totalReps = ses.reduce((t,s) => t + s.reps, 0);
+  const tests     = ses.filter(s => s.p.testReps > 0);
+  const bestHere  = tests.length ? Math.max(...tests.map(s => s.p.testReps)) : 0;
+  const best      = pullBestEver();
+  const tier      = pullTier(best);
+  /* Cumulative reps, so the sparkline shows accumulated work rather than the sawtooth of
+     one session against the next — total volume is the thing that moves a pull-up. */
+  let run = 0;
+  const cum = ses.map(s => ({ t:s.t, v:(run += s.reps) }));
+  const sw = sparkWidth();
+
+  $('pullDashTiles').innerHTML = `
+    <div class="tile">
+      <div class="lbl">Best strict set</div>
+      <div class="val">${best || '—'}<small>${best === 1 ? 'rep' : 'reps'}</small></div>
+      <div class="dl muted">${bestHere
+        ? `${bestHere} tested in range · ${tier.name} tier`
+        : `${tier.name} tier · no test in range`}</div>
+      ${sparkline(sparkOf(tests.map(s => ({t:s.t, v:s.p.testReps}))), sw, 26, NEUTRAL_DOT)}
+    </div>
+    <div class="tile">
+      <div class="lbl">Total reps</div>
+      <div class="val">${nf(totalReps)}</div>
+      <div class="dl muted">over ${plural(ses.length,'session')}</div>
+      ${sparkline(sparkOf(cum), sw, 26, NEUTRAL_DOT)}
+    </div>
+    <div class="tile">
+      <div class="lbl">Reps per session</div>
+      <div class="val">${d1(totalReps/ses.length)}</div>
+      <div class="dl muted">${plural(tests.length,'test set')} logged</div>
+    </div>
+    <div class="tile">
+      <div class="lbl">Sets completed</div>
+      <div class="val">${ses.reduce((t,s) => t + (s.p.done||0), 0)}<small>/ ${
+        ses.reduce((t,s) => t + (s.p.sets||0), 0)}</small></div>
+      <div class="dl muted">working sets ticked off</div>
+    </div>`;
+
+  renderPullTable(ses);
+  $('pullDashNote').innerHTML = `Best strict set comes from the week&nbsp;3 test sets only —
+    the working sets are submaximal by design, so they say nothing about a maximum.
+    At ${best || 0} the prescription is <b>${tier.name}</b>.`;
+}
+
+/* the table twin — the sparklines show shape only, so the numbers live here */
+function renderPullTable(ses){
+  $('pullTblToggle').textContent = showPullTable ? 'Hide sessions' : 'Show sessions';
+  if(!showPullTable){ $('pullTableWrap').innerHTML = ''; return; }
+  const rows = ses.slice().reverse().map(s => {
+    const l = liftById(s.lift);
+    return `<tr>
+      <td style="text-align:left">${fmtShort(new Date(s.t))}</td>
+      <td style="text-align:left">C${s.cycle} W${s.week}</td>
+      <td style="text-align:left">${esc(l ? l.short : s.lift)}</td>
+      <td>${s.p.done || 0}<span class="muted">/${s.p.sets || 0}</span></td>
+      <td>${s.p.reps}</td>
+      <td>${s.p.testReps || '—'}</td>
+      <td>${s.reps}</td>
+    </tr>`;
+  }).join('');
+  $('pullTableWrap').innerHTML = `<div style="overflow-x:auto;margin-top:10px;"><table class="tbl">
+    <thead><tr><th style="text-align:left">Date</th><th style="text-align:left">Slot</th>
+      <th style="text-align:left">Day</th><th>Sets</th><th>Reps/set</th><th>Test</th>
+      <th>Total</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+$('pullTblToggle').onclick = ()=>{
+  showPullTable = !showPullTable;
+  renderPullTable(pullSessions(dashRows()));
+};
+
+/* ---- water ---- */
+let showWaterTable = false;
 
 /* every day in the window, oldest first, whether or not anything was logged */
-function fuelDays(from){
-  const isos = Object.keys(S.nutrition.log).sort();
+function waterDays(from){
+  const isos = Object.keys(S.water.log).sort();
   if(!isos.length) return [];
   const first = parseLocalDate(isos[0]), end = today();
   const start = (from && +from > +first) ? from : first;
@@ -2527,91 +2707,75 @@ function fuelDays(from){
   const out = [];
   for(let d = new Date(start); +d <= +end; d = dayAfter(d)){
     const iso = toISODate(d);
-    out.push({ t:+d, iso, kcal:dayKcal(iso), water:dayWater(iso) });
+    out.push({ t:+d, iso, water:dayWater(iso) });
   }
   return out;
 }
 
-function renderFuelDash(){
+function renderWaterDash(){
   const from = rangeFrom();
-  const days = fuelDays(from ? dayAfter(from) : null);
-  const kt = kcalTarget(), wt = waterTarget(), cfg = wcfg();
+  const days = waterDays(from ? dayAfter(from) : null);
+  const wt = waterTarget(), cfg = wcfg();
 
   if(!days.length){
-    $('fuelDashTiles').innerHTML = '';
-    $('fuelTableWrap').innerHTML = '';
-    $('fuelTblToggle').style.display = 'none';
-    $('fuelDashNote').innerHTML = Object.keys(S.nutrition.log).length
+    $('waterDashTiles').innerHTML = '';
+    $('waterTableWrap').innerHTML = '';
+    $('waterTblToggle').style.display = 'none';
+    $('waterDashNote').innerHTML = Object.keys(S.water.log).length
       ? 'Nothing logged in this range.'
-      : `Nothing logged yet. Calories and water are on the Fuel tab — they stay on this
-         device, so there is no account to connect.`;
+      : `Nothing logged yet. The counter is on the Water tab — it stays on this device,
+         so there is no account to connect.`;
     return;
   }
-  $('fuelTblToggle').style.display = '';
+  $('waterTblToggle').style.display = '';
 
-  const kDays = days.filter(d => d.kcal > 0), wDays = days.filter(d => d.water > 0);
-  const avg = a => a.length ? a.reduce((t,x)=>t+x, 0)/a.length : 0;
-  const kAvg = avg(kDays.map(d => d.kcal)), wAvg = avg(wDays.map(d => d.water));
-  const spark = a => a.slice(-12).map(d => ({ t:d.t, v:d.v }));
-  const sparkW = Math.max(80, Math.floor((chartWidth() - 8)/2) - 24);
+  const logged = days.filter(d => d.water > 0);
+  const avg = logged.length ? logged.reduce((t,d)=>t+d.water, 0)/logged.length : 0;
+  const hit = days.filter(d => waterHit(d.iso)).length;
+  const sw  = sparkWidth();
 
-  const kHit = days.filter(d => kcalOnTarget(d.iso)).length;
-  const wHit = days.filter(d => waterHit(d.iso)).length;
-
-  $('fuelDashTiles').innerHTML = `
-    <div class="tile">
-      <div class="lbl">Avg calories</div>
-      <div class="val">${kDays.length ? nf(kAvg) : '—'}<small>${kDays.length ? '/ day' : ''}</small></div>
-      <div class="dl muted">${kDays.length
-        ? (kt ? `target ${nf(kt)}` : `over ${plural(kDays.length,'day')}`) : 'nothing logged'}</div>
-      ${sparkline(spark(kDays.map(d=>({t:d.t, v:d.kcal}))), sparkW, 26, FUEL_DOT)}
-    </div>
+  $('waterDashTiles').innerHTML = `
     <div class="tile">
       <div class="lbl">Avg water</div>
-      <div class="val">${wDays.length ? nf(wAvg) : '—'}<small>${cfg.unit}</small></div>
-      <div class="dl muted">${wDays.length
-        ? (wt ? `target ${nf(wt)}` : `over ${plural(wDays.length,'day')}`) : 'nothing logged'}</div>
-      ${sparkline(spark(wDays.map(d=>({t:d.t, v:d.water}))), sparkW, 26, FUEL_DOT)}
+      <div class="val">${logged.length ? nf(avg) : '—'}<small>${cfg.unit}</small></div>
+      <div class="dl muted">${logged.length
+        ? (wt ? `target ${nf(wt)}` : `over ${plural(logged.length,'day')}`) : 'nothing logged'}</div>
+      ${sparkline(sparkOf(logged.map(d=>({t:d.t, v:d.water}))), sw, 26, NEUTRAL_DOT)}
     </div>
     <div class="tile">
-      <div class="lbl">Calories on target</div>
-      <div class="val">${kt ? kHit : '—'}<small>${kt ? `/ ${days.length}` : 'no target'}</small></div>
-      <div class="dl muted">${kt ? `within ${Math.round(KCAL_BAND*100)}% of ${nf(kt)}` : 'set one in Settings'}</div>
-    </div>
-    <div class="tile">
-      <div class="lbl">Water target met</div>
-      <div class="val">${wt ? wHit : '—'}<small>${wt ? `/ ${days.length}` : 'no target'}</small></div>
+      <div class="lbl">Target met</div>
+      <div class="val">${wt ? hit : '—'}<small>${wt ? `/ ${days.length}` : 'no target'}</small></div>
       <div class="dl muted">${wt ? `${nf(wt)} ${cfg.unit} or more` : 'set one in Settings'}</div>
+      ${wt ? `<div class="meter water" role="img"
+                aria-label="${hit} of ${days.length} days on target">
+                <i style="width:${(hit/days.length*100).toFixed(1)}%"></i></div>` : ''}
     </div>`;
 
-  renderFuelTable(days);
-  $('fuelDashNote').innerHTML = `Averages count only the days you logged something
-    (${plural(kDays.length,'day')} of food, ${plural(wDays.length,'day')} of water); the
-    on-target counts are out of all ${plural(days.length,'day')} in range.`;
+  renderWaterTable(days);
+  $('waterDashNote').innerHTML = `The average counts only the ${plural(logged.length,'day')}
+    you logged something; the target count is out of all ${plural(days.length,'day')} in range.`;
 }
 
-/* the table twin — the sparklines show shape only, so the numbers live here */
-function renderFuelTable(days){
-  $('fuelTblToggle').textContent = showFuelTable ? 'Hide days' : 'Show days';
-  if(!showFuelTable){ $('fuelTableWrap').innerHTML = ''; return; }
-  const cfg = wcfg(), kt = kcalTarget(), wt = waterTarget();
+/* the table twin — the sparkline shows shape only, so the numbers live here */
+function renderWaterTable(days){
+  $('waterTblToggle').textContent = showWaterTable ? 'Hide days' : 'Show days';
+  if(!showWaterTable){ $('waterTableWrap').innerHTML = ''; return; }
+  const cfg = wcfg(), wt = waterTarget();
   const rows = days.slice().reverse().map(d => `<tr>
       <td style="text-align:left">${fmtShort(new Date(d.t))}</td>
-      <td>${d.kcal ? nf(d.kcal) : '—'}</td>
-      <td>${kt ? (kcalOnTarget(d.iso) ? '<span class="up">✔</span>' : '—') : '—'}</td>
       <td>${d.water ? nf(d.water) : '—'}</td>
       <td>${wt ? (waterHit(d.iso) ? '<span class="up">✔</span>' : '—') : '—'}</td>
     </tr>`).join('');
-  $('fuelTableWrap').innerHTML = `<div style="overflow-x:auto;margin-top:10px;"><table class="tbl">
-    <thead><tr><th style="text-align:left">Date</th><th>Calories</th><th>On target</th>
-      <th>Water (${cfg.unit})</th><th>Met</th></tr></thead>
+  $('waterTableWrap').innerHTML = `<div style="overflow-x:auto;margin-top:10px;"><table class="tbl">
+    <thead><tr><th style="text-align:left">Date</th><th>Water (${cfg.unit})</th>
+      <th>Target met</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
 
-$('fuelTblToggle').onclick = ()=>{
-  showFuelTable = !showFuelTable;
+$('waterTblToggle').onclick = ()=>{
+  showWaterTable = !showWaterTable;
   const f = rangeFrom();
-  renderFuelTable(fuelDays(f ? dayAfter(f) : null));
+  renderWaterTable(waterDays(f ? dayAfter(f) : null));
 };
 
 /* ---- column chart: tonnage by cycle (single series -> slot 1, no legend) ---- */
@@ -2718,23 +2882,46 @@ function renderSettings(){
   renderTMFields();
   renderPrefs();
   renderBBBSettings();
-  renderFuelSettings();
+  renderPullSettings();
+  renderWaterSettings();
   renderSchedule();
 }
 
-function renderFuelSettings(){
+function renderPullSettings(){
+  $('setPull').value     = S.settings.pull;
+  $('setPullDays').value = S.settings.pullDays;
+  $('setPullBest').value = S.settings.pullBest || '';
+  $('pullOpts').style.display = S.settings.pull === 'on' ? 'block' : 'none';
+  if(S.settings.pull !== 'on') return;
+
+  const best = pullBestEver();
+  const tier = pullTier(Math.max(0, S.settings.pullBest || 0));
+  /* Show the prescription for each of the four weeks: the whole point of the setting is
+     what it does to the sessions, and week 3 and the deload both differ. */
+  const wks = WEEKS.map(w => {
+    const p = pullFor(LIFTS.find(l => l.upper).id, w.n);
+    return p ? `W${w.n} ${p.sets}×${p.reps}${p.test ? '+test' : ''}` : `W${w.n} —`;
+  }).join(' · ');
+  const days = S.settings.pullDays === 'all' ? LIFTS.length : LIFTS.filter(l => l.upper).length;
+
+  $('pullNote').innerHTML = `<b>${tier.name}</b> tier: ${tier.cue}<br>
+    ${wks} — ${days}× a week, ${days * WEEKS.length} sessions a cycle.
+    ${best > (S.settings.pullBest || 0)
+      ? `Your best logged test is <b>${best}</b>; this field says ${S.settings.pullBest || 0}.`
+      : `Week 3 tests it and writes the new best back here on its own.`}`;
+}
+
+function renderWaterSettings(){
   const cfg = wcfg(), bw = lastBodyweight();
   $('setWaterUnit').textContent = cfg.unit;
-  $('setKcal').value  = S.settings.kcalTarget  || '';
   $('setWater').value = S.settings.waterTarget || '';
-  $('kcalFromBw').disabled  = !bw;
   $('waterFromBw').disabled = !bw;
-  $('fuelSetNote').innerHTML = bw
-    ? `Estimates use your last body weight (${d1(bw.v)} ${U()}): about
-       ${nf(bw.v*KCAL_PER_BW[U()])} kcal to hold it, and ${nf(bw.v*cfg.perBw)} ${cfg.unit} of water.
-       Both are rough starting points — adjust from what actually happens on the scale.`
-    : `Log a body weight on the Train tab and this can estimate both targets for you.
-       Leave a target blank to just log without one.`;
+  $('waterSetNote').innerHTML = bw
+    ? `An estimate from your last body weight (${d1(bw.v)} ${U()}) is about
+       ${nf(bw.v*cfg.perBw)} ${cfg.unit} a day — a rough starting point, not a rule.
+       Leave it blank to log without a target.`
+    : `Log a body weight on the Train tab and this can estimate a target for you.
+       Leave it blank to just log without one.`;
 }
 
 function renderTMFields(){
@@ -2835,7 +3022,7 @@ $('saveBtn').onclick = ()=>{
   const topWeight = setWeight(tm, topSet.pct);
 
   let reps = null;
-  const inp = document.querySelector('.amrapin');
+  const inp = mainAmrapInput();
   if(inp) reps = inp.value === '' ? amrapSet.reps : parseInt(inp.value,10);
 
   const est = amrapSet ? e1rm(setWeight(tm, amrapSet.pct), reps) : 0;
@@ -2850,15 +3037,32 @@ $('saveBtn').onclick = ()=>{
         done: (bbbDraft.key === key ? bbbDraft.done : 0) }
     : null;
 
+  /* The pull-up block is stored with the prescription it was performed under, not just
+     the reps: the tier moves as your best moves, so a session read back later has to
+     carry the numbers that were actually on screen that day. */
+  const pcfg = pullFor(selLift, viewWeek);
+  let pull = null;
+  if(pcfg){
+    const ti = pullTestInput();
+    const testRaw = ti && ti.value !== '' ? parseInt(ti.value, 10) : NaN;
+    pull = {
+      tier: pcfg.tier, sets: pcfg.sets, reps: pcfg.reps,
+      done: (pullDraft.key === key ? pullDraft.done : 0),
+      testReps: (pcfg.test && testRaw >= 0) ? testRaw : null,
+    };
+  }
+  const prevPullBest = S.settings.pullBest || 0;
+  if(pull && pull.testReps > prevPullBest) S.settings.pullBest = pull.testReps;
+
   const bwRaw = parseFloat($('bwIn').value);
   const bw = bwRaw > 0 ? bwRaw : null;   // blank means "not weighed today", not zero
 
   const entry = {
     date: new Date().toISOString(), cycle:S.cycle, week:viewWeek, lift:selLift,
-    tm, topWeight, amrapReps:reps, e1rm:est, units:U(), bbb, bw,
+    tm, topWeight, amrapReps:reps, e1rm:est, units:U(), bbb, pull, bw,
   };
   if(existing >= 0) S.history[existing] = entry; else S.history.push(entry);
-  S.done[key] = { date:entry.date, amrapReps:reps, e1rm:est, tm, bbb, bw };
+  S.done[key] = { date:entry.date, amrapReps:reps, e1rm:est, tm, bbb, pull, bw };
 
   // auto-advance week when all four lifts done
   if(viewWeek === S.week && LIFTS.every(l=>S.done[doneKey(S.cycle,S.week,l.id)]) && S.week < 4){
@@ -2869,7 +3073,13 @@ $('saveBtn').onclick = ()=>{
   if(next) selLift = next.id;
 
   save(); render();
-  toast(est && est > prevBest && prevBest ? `PR! est. 1RM ${est} ${U()}` : 'Logged ✔');
+  const prs = [];
+  if(est && prevBest && est > prevBest) prs.push(`PR! est. 1RM ${est} ${U()}`);
+  if(pull && pull.testReps > prevPullBest)
+    prs.push(prevPullBest
+      ? `Pull-up best ${pull.testReps} (was ${prevPullBest})`
+      : `First pull-up best: ${pull.testReps}`);
+  toast(prs.length ? prs.join(' · ') : 'Logged ✔');
 };
 
 $('clearBtn').onclick = ()=>{
@@ -2892,10 +3102,12 @@ $('nextCycleBtn').onclick = ()=>{
   toast(f ? `Cycle ${S.cycle} · starts ${fmtShort(f)}` : `Cycle ${S.cycle} — TMs bumped`);
 };
 
-['setUnits','setTmPct','setBar','setBBB','setBBBLift','setBBBPct','setRound'].forEach(id=>{
+['setUnits','setTmPct','setBar','setBBB','setBBBLift','setBBBPct','setRound',
+ 'setPull','setPullDays'].forEach(id=>{
   $(id).onchange = ()=>{
     const map = {setUnits:'units', setTmPct:'tmPct', setBar:'bar', setBBB:'bbb',
-                 setBBBLift:'bbbLift', setBBBPct:'bbbPct', setRound:'roundTo'};
+                 setBBBLift:'bbbLift', setBBBPct:'bbbPct', setRound:'roundTo',
+                 setPull:'pull', setPullDays:'pullDays'};
     let v = $(id).value;
     if(id==='setTmPct'||id==='setBar'||id==='setRound') v = parseFloat(v);
     if(id==='setUnits' && v !== S.settings.units){
@@ -2913,31 +3125,17 @@ $('nextCycleBtn').onclick = ()=>{
     save(); render();
   };
 });
-/* ---- food & water ---- */
-$('kcalAdd').onclick = ()=>{
-  const kcal = Math.round(parseFloat($('kcalIn').value));
-  if(!(kcal > 0)) return toast('Enter a calorie amount');
-  const name = $('kcalName').value.trim();
-  addKcal(kcal, name);
-  $('kcalIn').value = ''; $('kcalName').value = '';
-  renderFuel(); renderDash();
-  const t = kcalTarget(), tot = dayKcal(fuelKey());
-  toast(t ? (tot > t ? `${nf(tot - t)} over target` : `${nf(t - tot)} left today`) : `+${nf(kcal)} kcal`);
-};
-$('kcalIn').onkeydown = $('kcalName').onkeydown = e => { if(e.key === 'Enter') $('kcalAdd').click(); };
-
-$('setKcal').onchange = ()=>{
-  S.settings.kcalTarget = Math.max(0, Math.round(parseFloat($('setKcal').value) || 0));
+/* ---- strict pull-ups ---- */
+$('setPullBest').onchange = ()=>{
+  S.settings.pullBest = Math.max(0, Math.round(parseFloat($('setPullBest').value) || 0));
   save(); render();
+  toast(`${pullTier(S.settings.pullBest).name} tier`);
 };
+
+/* ---- water ---- */
 $('setWater').onchange = ()=>{
   S.settings.waterTarget = Math.max(0, Math.round(parseFloat($('setWater').value) || 0));
   save(); render();
-};
-$('kcalFromBw').onclick = ()=>{
-  const bw = lastBodyweight(); if(!bw) return toast('Log a body weight first');
-  S.settings.kcalTarget = Math.round(bw.v*KCAL_PER_BW[U()]/10)*10;
-  save(); render(); toast(`Target ${nf(S.settings.kcalTarget)} kcal`);
 };
 $('waterFromBw').onclick = ()=>{
   const bw = lastBodyweight(); if(!bw) return toast('Log a body weight first');
@@ -3015,7 +3213,7 @@ document.querySelectorAll('nav button').forEach(b=>{
     $('v-'+b.dataset.view).classList.add('active');
     if(b.dataset.view === 'set') renderStorageStatus();
     if(b.dataset.view === 'mob')  renderMobility();  // re-reads "today" in case the date rolled over
-    if(b.dataset.view === 'fuel') renderFuel();
+    if(b.dataset.view === 'water') renderWater();
     window.scrollTo({top:0});
   };
 });
